@@ -11,7 +11,6 @@ export type NavIcon =
   | "team"
   | "member"
   | "admin"
-  | "organization"
   | "settings";
 
 export interface NavItem {

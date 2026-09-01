@@ -31,7 +31,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { notify } = useToast();
-  const { organizationId, teamId: workspaceTeamId, tenantListsReady, scopeLabel, organizations } =
+  const { organizationId, teamId: workspaceTeamId, tenantListsReady, scopeLabel } =
     useWorkspace();
   const canManage = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
@@ -42,7 +42,6 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<AccountStatus | "">("");
   const [page, setPage] = useState(1);
-  const [organizationFilter, setOrganizationFilter] = useState("");
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<MemberUser | null>(null);
   const [formBusy, setFormBusy] = useState(false);
@@ -63,9 +62,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
       const members = await listMembers({
         search: search || undefined,
         status,
-        organizationId: isSuperAdmin
-          ? organizationFilter || undefined
-          : organizationId || undefined,
+        organizationId: isSuperAdmin ? undefined : organizationId || undefined,
         teamId: isSuperAdmin ? undefined : workspaceTeamId || undefined,
         page,
         pageSize: 10,
@@ -78,7 +75,6 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
     }
   }, [
     isSuperAdmin,
-    organizationFilter,
     organizationId,
     page,
     search,
@@ -181,7 +177,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
       )}
 
       <form
-        className={`grid gap-3 rounded-xl border border-slate-200 bg-white p-4 ${isSuperAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}
+        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -210,25 +206,6 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
             <option value="INACTIVE">Inactive</option>
           </SelectInput>
         </Field>
-        {isSuperAdmin ? (
-          <Field label="Organization" htmlFor="member-org-filter">
-            <SelectInput
-              id="member-org-filter"
-              value={organizationFilter}
-              onChange={(event) => {
-                setOrganizationFilter(event.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">All organizations</option>
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : null}
         <div className="flex items-end">
           <Button type="submit" variant="secondary" className="w-full">
             Apply filters
@@ -236,12 +213,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         </div>
       </form>
 
-      {!isSuperAdmin && !tenantListsReady ? (
-        <EmptyState
-          title="Select an organization"
-          description="Choose an organization in the workspace switcher to view that tenant's members."
-        />
-      ) : loading ? (
+      {loading ? (
         <p className="text-sm text-slate-500">Loading members…</p>
       ) : error ? (
         <ErrorState title="We couldn't load members." message={error} onRetry={() => void load()} />
@@ -275,7 +247,6 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
                       {member.teams.length > 0
                         ? `${member.teams.length} team${member.teams.length === 1 ? "" : "s"}`
                         : "No teams"}
-                      {isSuperAdmin && member.organization ? ` · ${member.organization.name}` : ""}
                     </p>
                   </Td>
                   <Td muted>{member.email}</Td>
@@ -311,8 +282,6 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         <MemberForm
           title="Add member"
           mode="create"
-          requireOrganization={isSuperAdmin}
-          organizations={organizations}
           initialValues={{ organizationId: organizationId ?? "" }}
           busy={formBusy}
           onClose={() => setFormMode(null)}
@@ -324,8 +293,6 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         <MemberForm
           title="Edit member"
           mode="edit"
-          requireOrganization={false}
-          organizations={organizations}
           initialValues={valuesFromMember(editing)}
           busy={formBusy}
           onClose={() => {

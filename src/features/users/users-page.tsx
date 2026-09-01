@@ -20,7 +20,7 @@ export function UsersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Admins & Users"
-        description="Platform directory for organization administrators and members. Users are not duplicated when they belong to multiple teams."
+        description="Directory for team administrators and members. Users are not duplicated when they belong to multiple teams."
       />
       <div className="flex flex-wrap gap-2 border-b border-border pb-3">
         <button
@@ -32,7 +32,7 @@ export function UsersPage() {
           }
           onClick={() => setTab("admins")}
         >
-          Organization admins
+          Team admins
         </button>
         <button
           type="button"

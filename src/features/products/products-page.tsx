@@ -36,7 +36,7 @@ import type {
 export function ProductsPage() {
   const { user } = useAuth();
   const { notify } = useToast();
-  const { organizationId, tenantListsReady, scopeLabel, organizations } = useWorkspace();
+  const { organizationId, tenantListsReady, scopeLabel } = useWorkspace();
   const canManage = hasPermission(user, "PRODUCTS_CREATE");
 
   const [result, setResult] = useState<ProductListResult | null>(null);
@@ -199,12 +199,7 @@ export function ProductsPage() {
         </div>
       </form>
 
-      {!tenantListsReady ? (
-        <EmptyState
-          title="Select an organization"
-          description="Choose an organization in the workspace switcher to view that tenant's catalog."
-        />
-      ) : loading && !result ? (
+      {loading && !result ? (
         <TableSkeleton cols={4} />
       ) : error && !result ? (
         <ErrorState title="We couldn't load products." message={error} onRetry={() => void load()} />
@@ -276,8 +271,6 @@ export function ProductsPage() {
         <ProductForm
           title="Add product"
           mode="create"
-          requireOrganization={user?.role === "SUPER_ADMIN"}
-          organizations={organizations}
           initialValues={{ organizationId: organizationId ?? "" }}
           busy={formBusy}
           onClose={() => setFormMode(null)}
@@ -289,8 +282,6 @@ export function ProductsPage() {
         <ProductForm
           title="Edit product"
           mode="edit"
-          requireOrganization={false}
-          organizations={organizations}
           initialValues={valuesFromProduct(editing)}
           busy={formBusy}
           onClose={() => {

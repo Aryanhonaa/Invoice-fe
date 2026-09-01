@@ -21,7 +21,7 @@ import { StatCard } from "./stat-card";
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { organizationId, teamId, scopeLabel, organizationName } = useWorkspace();
+  const { organizationId, teamId, scopeLabel } = useWorkspace();
   const requestIdRef = useRef(0);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [preset, setPreset] = useState<DashboardDatePreset>("this_year");
@@ -97,17 +97,17 @@ export function DashboardPage() {
   const { metrics, currency } = dashboard;
   const description =
     dashboard.scope === "SYSTEM"
-      ? `Platform overview · ${scopeLabel}. Usage across organizations (not a tenant workspace).`
+      ? `Company overview · ${scopeLabel}.`
       : dashboard.scope === "MEMBER"
-        ? `${organizationName ? `${organizationName} · ` : ""}${scopeLabel}. Invoices and payments you are assigned to.`
-        : `${organizationName ? `${organizationName} · ` : ""}${scopeLabel}. Revenue, receivables, and team performance.`;
+        ? `${scopeLabel}. Invoices and payments you are assigned to.`
+        : `${scopeLabel}. Revenue, receivables, and team performance.`;
 
   if (dashboard.scope === "SYSTEM") {
     return (
       <div className="space-y-8">
         <PageHeader
-          title="Platform overview"
-          description="Usage across organizations. Tenant collections stay with each organization."
+          title="Company overview"
+          description="Usage across teams and billing."
           actions={
             <DateRangeFilter
               preset={preset}
@@ -120,21 +120,10 @@ export function DashboardPage() {
           }
         />
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Organizations" value={String(metrics.organizations ?? 0)} hint="All tenants" />
-          <StatCard
-            label="Active"
-            value={String(metrics.activeOrganizations ?? 0)}
-            hint="Deactivated organizations"
-            tone="success"
-          />
-          <StatCard
-            label="Suspended"
-            value={String(metrics.inactiveOrganizations ?? 0)}
-            hint="Deactivated organizations"
-          />
-          <StatCard label="Organization admins" value={String(metrics.admins ?? 0)} hint="ADMIN accounts" />
-          <StatCard label="Members" value={String(metrics.members ?? 0)} hint="Tenant members" />
-          <StatCard label="Customers" value={String(metrics.customers ?? 0)} hint="Catalog records across tenants" />
+          <StatCard label="Teams" value={String(metrics.teams ?? 0)} hint="Active working groups" />
+          <StatCard label="Administrators" value={String(metrics.admins ?? 0)} hint="ADMIN accounts" />
+          <StatCard label="Members" value={String(metrics.members ?? 0)} />
+          <StatCard label="Customers" value={String(metrics.customers ?? 0)} />
           <StatCard label="Invoices" value={String(metrics.invoices)} hint="Issued in this period" />
           <StatCard
             label="Paid invoices"
@@ -143,28 +132,14 @@ export function DashboardPage() {
             tone="success"
           />
         </div>
-        {dashboard.organizationActivity.length > 0 ? (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-foreground">Organization activity</h2>
-            <ul className="divide-y divide-slate-100 rounded-[12px] border border-border bg-surface">
-              {dashboard.organizationActivity.map((item) => (
-                <li key={item.organizationId} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-sm font-medium">{item.organizationName}</p>
-                    <p className="text-xs text-muted">{item.invoiceCount} invoices in this period</p>
-                  </div>
-                  <Link
-                    href={`/organizations/${item.organizationId}`}
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
-                    View
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
+        {dashboard.teamPerformance.length > 0 ? (
+          <TeamPerformanceChart
+            teams={dashboard.teamPerformance}
+            currency={dashboard.currency}
+            loading={loading}
+          />
         ) : (
-          <p className="text-sm text-muted">No organization activity in this period.</p>
+          <p className="text-sm text-muted">No team activity in this period.</p>
         )}
       </div>
     );

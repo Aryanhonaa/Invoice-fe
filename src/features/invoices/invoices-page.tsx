@@ -262,12 +262,7 @@ export function InvoicesPage() {
         </div>
       ) : null}
 
-      {!tenantListsReady ? (
-        <EmptyState
-          title="Select an organization"
-          description="Choose an organization in the workspace switcher to view that tenant's invoices."
-        />
-      ) : loading && !result ? (
+      {loading && !result ? (
         <TableSkeleton cols={5} />
       ) : error && !result ? (
         <ErrorState title="We couldn't load your invoices." message={error} onRetry={() => void load()} />

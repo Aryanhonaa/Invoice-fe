@@ -180,11 +180,7 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
         ) : null}
       </div>
 
-      <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 md:grid-cols-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Organization</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">{team.organization?.name ?? "—"}</p>
-        </div>
+      <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 md:grid-cols-2">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Status</p>
           <p className="mt-1 text-sm font-medium text-slate-900">{team.isActive ? "Active" : "Inactive"}</p>
@@ -256,8 +252,6 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
         <TeamForm
           title="Edit team"
           mode="edit"
-          requireOrganization={false}
-          organizations={[]}
           initialValues={{
             name: team.name,
             description: team.description ?? "",
@@ -300,7 +294,7 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
             </SelectInput>
           </Field>
           {availableMembers.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">No unassigned active members in this organization.</p>
+            <p className="mt-3 text-sm text-slate-500">No unassigned active members available.</p>
           ) : null}
         </Dialog>
       ) : null}

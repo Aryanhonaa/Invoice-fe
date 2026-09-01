@@ -329,12 +329,6 @@ function NavIconMark({ name }: { name: NavIcon }) {
           <path d="M4 12.5c.5-2 2-3 4-3s3.5 1 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
       );
-    case "organization":
-      return (
-        <svg viewBox="0 0 16 16" fill="none" className={common} aria-hidden>
-          <path d="M3 13.5V4.5h6v9M9 7h4v6.5M5.2 6.5h1.6M5.2 9h1.6M5.2 11.5h1.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-        </svg>
-      );
     case "settings":
       return (
         <svg viewBox="0 0 16 16" fill="none" className={common} aria-hidden>

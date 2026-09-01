@@ -16,24 +16,19 @@ import { TeamForm } from "@/features/teams/team-form";
 import { ApiError } from "@/lib/api/types";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
-import { listOrganizations } from "@/services/organizations.service";
 import { createTeam, listTeams, updateTeam, updateTeamStatus } from "@/services/teams.service";
-import type { OrganizationSummary } from "@/types/admin";
 import type { Team, TeamFormValues, TeamListResult } from "@/types/team";
 
 export function TeamsPage() {
   const { user } = useAuth();
   const { notify } = useToast();
   const canManage = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
   const [result, setResult] = useState<TeamListResult | null>(null);
-  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE" | "">("");
-  const [organizationId, setOrganizationId] = useState("");
   const [page, setPage] = useState(1);
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<Team | null>(null);
@@ -45,24 +40,19 @@ export function TeamsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [teams, orgs] = await Promise.all([
-        listTeams({
-          search: search || undefined,
-          status,
-          organizationId: organizationId || undefined,
-          page,
-          pageSize: 10,
-        }),
-        isSuperAdmin ? listOrganizations() : Promise.resolve([]),
-      ]);
+      const teams = await listTeams({
+        search: search || undefined,
+        status,
+        page,
+        pageSize: 10,
+      });
       setResult(teams);
-      setOrganizations(orgs);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load teams.");
     } finally {
       setLoading(false);
     }
-  }, [isSuperAdmin, organizationId, page, search, status]);
+  }, [page, search, status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,9 +122,7 @@ export function TeamsPage() {
       />
 
       <form
-        className={`grid gap-3 rounded-xl border border-slate-200 bg-white p-4 ${
-          isSuperAdmin ? "md:grid-cols-4" : "md:grid-cols-3"
-        }`}
+        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -163,25 +151,6 @@ export function TeamsPage() {
             <option value="INACTIVE">Inactive</option>
           </SelectInput>
         </Field>
-        {isSuperAdmin ? (
-          <Field label="Organization" htmlFor="team-org-filter">
-            <SelectInput
-              id="team-org-filter"
-              value={organizationId}
-              onChange={(event) => {
-                setOrganizationId(event.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">All organizations</option>
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : null}
         <div className="flex items-end">
           <Button type="submit" variant="secondary" className="w-full">
             Apply filters
@@ -219,9 +188,6 @@ export function TeamsPage() {
                     <Link href={`/teams/${team.id}`} className="font-medium hover:underline">
                       {team.name}
                     </Link>
-                    {isSuperAdmin ? (
-                      <p className="text-xs text-slate-500">{team.organization?.name ?? "—"}</p>
-                    ) : null}
                   </Td>
                   <Td muted>{team.memberCount}</Td>
                   <Td>
@@ -258,8 +224,6 @@ export function TeamsPage() {
         <TeamForm
           title="Create team"
           mode="create"
-          requireOrganization={isSuperAdmin}
-          organizations={organizations}
           busy={formBusy}
           onClose={() => setFormMode(null)}
           onSubmit={handleCreate}
@@ -270,8 +234,6 @@ export function TeamsPage() {
         <TeamForm
           title="Edit team"
           mode="edit"
-          requireOrganization={false}
-          organizations={organizations}
           initialValues={{
             name: editing.name,
             description: editing.description ?? "",

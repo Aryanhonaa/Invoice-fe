@@ -7,15 +7,12 @@ import { Field, SelectInput, TextInput } from "@/components/ui/field";
 import { ApiError } from "@/lib/api/types";
 import { memberFormSchema } from "@/schemas/member";
 import { listTeams } from "@/services/teams.service";
-import type { OrganizationSummary } from "@/types/admin";
 import type { MemberFormValues, MemberUser } from "@/types/member";
 import type { Team } from "@/types/team";
 
 interface MemberFormProps {
   title: string;
   mode: "create" | "edit";
-  requireOrganization: boolean;
-  organizations: OrganizationSummary[];
   initialValues?: Partial<MemberFormValues>;
   busy: boolean;
   onClose: () => void;
@@ -36,8 +33,6 @@ const emptyValues: MemberFormValues = {
 export function MemberForm({
   title,
   mode,
-  requireOrganization,
-  organizations,
   initialValues,
   busy,
   onClose,
@@ -61,16 +56,9 @@ export function MemberForm({
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void (async () => {
-        if (requireOrganization && !values.organizationId) {
-          if (!cancelled) {
-            setTeams([]);
-          }
-          return;
-        }
         setTeamsLoading(true);
         try {
           const result = await listTeams({
-            organizationId: values.organizationId || undefined,
             status: "ACTIVE",
             pageSize: 50,
           });
@@ -93,7 +81,7 @@ export function MemberForm({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [mode, requireOrganization, values.organizationId]);
+  }, [mode]);
 
   function update<K extends keyof MemberFormValues>(key: K, value: MemberFormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -120,10 +108,6 @@ export function MemberForm({
         }
       }
       setErrors(nextErrors);
-      return;
-    }
-    if (requireOrganization && !values.organizationId) {
-      setFormError("Organization is required");
       return;
     }
     setErrors({});
@@ -187,26 +171,6 @@ export function MemberForm({
             onChange={(event) => update("phone", event.target.value)}
           />
         </Field>
-        {requireOrganization ? (
-          <Field label="Organization" htmlFor="member-org" error={errors.organizationId} required>
-            <SelectInput
-              id="member-org"
-              value={values.organizationId}
-              onChange={(event) => {
-                update("organizationId", event.target.value);
-                update("teamIds", []);
-              }}
-              required
-            >
-              <option value="">Select organization</option>
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : null}
         {mode === "create" ? (
           <>
             <Field

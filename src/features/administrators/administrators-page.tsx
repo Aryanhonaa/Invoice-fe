@@ -41,7 +41,6 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<AccountStatus | "">("");
-  const [organizationId, setOrganizationId] = useState("");
   const [page, setPage] = useState(1);
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<AdminUser | null>(null);
@@ -58,7 +57,6 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         listAdmins({
           search: search || undefined,
           status,
-          organizationId: organizationId || undefined,
           page,
           pageSize: 10,
         }),
@@ -71,7 +69,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
     } finally {
       setLoading(false);
     }
-  }, [organizationId, page, search, status]);
+  }, [page, search, status]);
 
   useEffect(() => {
     if (!authLoading && user?.role !== "SUPER_ADMIN") {
@@ -233,7 +231,6 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
               <tr>
                 <Th>Name</Th>
                 <Th>Email</Th>
-                <Th>Team</Th>
                 <Th>Status</Th>
                 <Th className="text-right">Actions</Th>
               </tr>
@@ -247,7 +244,6 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
                     </span>
                   </Td>
                   <Td muted>{admin.email}</Td>
-                  <Td muted>{admin.organization?.name ?? "Company"}</Td>
                   <Td>
                     <StatusBadge status={admin.status} />
                   </Td>

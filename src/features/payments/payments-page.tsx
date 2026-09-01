@@ -222,12 +222,7 @@ export function PaymentsPage() {
         </div>
       </form>
 
-      {!tenantListsReady ? (
-        <EmptyState
-          title="Select an organization"
-          description="Choose an organization in the workspace switcher to view that tenant's payments."
-        />
-      ) : loading ? (
+      {loading ? (
         <p className="text-sm text-slate-500">Loading payments…</p>
       ) : error ? (
         <ErrorState title="We couldn't load your payments." message={error} onRetry={() => void load()} />

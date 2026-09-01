@@ -3,16 +3,13 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, SelectInput, TextInput } from "@/components/ui/field";
+import { Field, TextInput } from "@/components/ui/field";
 import { teamFormSchema } from "@/schemas/team";
-import type { OrganizationSummary } from "@/types/admin";
 import type { TeamFormValues } from "@/types/team";
 
 interface TeamFormProps {
   title: string;
   mode: "create" | "edit";
-  requireOrganization: boolean;
-  organizations: OrganizationSummary[];
   initialValues?: Partial<TeamFormValues>;
   busy: boolean;
   onClose: () => void;
@@ -22,8 +19,6 @@ interface TeamFormProps {
 export function TeamForm({
   title,
   mode,
-  requireOrganization,
-  organizations,
   initialValues,
   busy,
   onClose,
@@ -41,10 +36,6 @@ export function TeamForm({
     const parsed = teamFormSchema.safeParse(values);
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Check the form and try again.");
-      return;
-    }
-    if (requireOrganization && !values.organizationId) {
-      setError("Organization is required");
       return;
     }
     setError(null);
@@ -84,25 +75,6 @@ export function TeamForm({
             }
           />
         </Field>
-        {requireOrganization ? (
-          <Field label="Organization" htmlFor="team-org" required>
-            <SelectInput
-              id="team-org"
-              value={values.organizationId}
-              onChange={(event) =>
-                setValues((current) => ({ ...current, organizationId: event.target.value }))
-              }
-              required
-            >
-              <option value="">Select organization</option>
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : null}
         {error ? (
           <p className="text-sm text-red-700" role="alert">
             {error}

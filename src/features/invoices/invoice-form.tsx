@@ -13,7 +13,6 @@ import { ApiError } from "@/lib/api/types";
 import { invoiceFormSchema } from "@/schemas/invoice";
 import { createCustomer } from "@/services/customers.service";
 import { useToast } from "@/providers/toast-provider";
-import type { OrganizationSummary } from "@/types/admin";
 import type { Customer, CustomerFormValues, Product } from "@/types/catalog";
 import type { Invoice, InvoiceFormValues, InvoiceItemFormValues } from "@/types/invoice";
 import type { MemberUser } from "@/types/member";
@@ -21,8 +20,6 @@ import type { Team } from "@/types/team";
 
 interface InvoiceFormProps {
   mode: "create" | "edit";
-  requireOrganization: boolean;
-  organizations: OrganizationSummary[];
   customers: Customer[];
   products: Product[];
   teams: Team[];
@@ -62,8 +59,6 @@ function inDays(days: number): string {
 
 export function InvoiceForm({
   mode,
-  requireOrganization,
-  organizations,
   customers,
   products,
   teams,
@@ -159,10 +154,6 @@ export function InvoiceForm({
 
   function validateStep(index: number): boolean {
     if (index === 0) {
-      if (requireOrganization && !values.organizationId) {
-        setFormError("Please select an organization before continuing.");
-        return false;
-      }
       if (!values.customerId) {
         setFormError("Please select a customer before continuing.");
         return false;
@@ -206,10 +197,6 @@ export function InvoiceForm({
     const parsed = invoiceFormSchema.safeParse(values);
     if (!parsed.success) {
       setFormError(parsed.error.issues[0]?.message ?? "Check the form and try again.");
-      return;
-    }
-    if (requireOrganization && !values.organizationId) {
-      setFormError("Organization is required");
       return;
     }
     setFormError(null);
@@ -591,8 +578,6 @@ export function InvoiceForm({
         <CustomerForm
           title="Add customer"
           mode="create"
-          requireOrganization={requireOrganization}
-          organizations={organizations}
           busy={customerBusy}
           onClose={() => setAddCustomerOpen(false)}
           onSubmit={handleCreateCustomer}

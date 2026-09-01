@@ -196,13 +196,7 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
         </ActionGroup>
       </div>
 
-      <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 md:grid-cols-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Organization</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
-            {member.organization?.name ?? "—"}
-          </p>
-        </div>
+      <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 md:grid-cols-2">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Status</p>
           <p className="mt-1 text-sm font-medium text-slate-900">
@@ -264,8 +258,6 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
         <MemberForm
           title="Edit member"
           mode="edit"
-          requireOrganization={false}
-          organizations={[]}
           initialValues={valuesFromMember(member)}
           busy={formBusy}
           onClose={() => setEditing(false)}

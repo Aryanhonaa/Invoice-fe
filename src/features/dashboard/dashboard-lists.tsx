@@ -6,12 +6,10 @@ export function InvoiceSummaryTable({
   title,
   empty,
   invoices,
-  showOrganization,
 }: {
   title: string;
   empty: string;
   invoices: DashboardInvoiceSummary[];
-  showOrganization?: boolean;
 }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white">
@@ -30,7 +28,6 @@ export function InvoiceSummaryTable({
               <tr>
                 <th className="px-5 py-3 font-medium">Invoice</th>
                 <th className="px-5 py-3 font-medium">Customer</th>
-                {showOrganization ? <th className="px-5 py-3 font-medium">Organization</th> : null}
                 <th className="px-5 py-3 font-medium">Due</th>
                 <th className="px-5 py-3 font-medium">Total</th>
                 <th className="px-5 py-3 font-medium">Status</th>
@@ -45,9 +42,6 @@ export function InvoiceSummaryTable({
                     </Link>
                   </td>
                   <td className="px-5 py-3 text-slate-600">{invoice.customerName}</td>
-                  {showOrganization ? (
-                    <td className="px-5 py-3 text-slate-600">{invoice.organizationName ?? "—"}</td>
-                  ) : null}
                   <td className="px-5 py-3 text-slate-600">{invoice.dueDate.slice(0, 10)}</td>
                   <td className="px-5 py-3 text-slate-600">
                     {formatMoney(invoice.total, invoice.currency)}
@@ -67,12 +61,10 @@ export function PaymentSummaryTable({
   title,
   empty,
   payments,
-  showOrganization,
 }: {
   title: string;
   empty: string;
   payments: DashboardPaymentSummary[];
-  showOrganization?: boolean;
 }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white">
@@ -92,7 +84,6 @@ export function PaymentSummaryTable({
                 <th className="px-5 py-3 font-medium">Date</th>
                 <th className="px-5 py-3 font-medium">Invoice</th>
                 <th className="px-5 py-3 font-medium">Customer</th>
-                {showOrganization ? <th className="px-5 py-3 font-medium">Organization</th> : null}
                 <th className="px-5 py-3 font-medium">Amount</th>
               </tr>
             </thead>
@@ -108,9 +99,6 @@ export function PaymentSummaryTable({
                     </Link>
                   </td>
                   <td className="px-5 py-3 text-slate-600">{payment.customerName}</td>
-                  {showOrganization ? (
-                    <td className="px-5 py-3 text-slate-600">{payment.organizationName ?? "—"}</td>
-                  ) : null}
                   <td className="px-5 py-3 text-slate-600">
                     {formatMoney(payment.amount, payment.currency)}
                   </td>

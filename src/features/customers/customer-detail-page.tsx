@@ -124,7 +124,6 @@ export function CustomerDetailPage({ customerId }: CustomerDetailPageProps) {
         <Detail label="Phone" value={customer.phone} />
         <Detail label="Tax / VAT / PAN" value={customer.taxNumber} />
         <Detail label="Status" value={customer.isActive ? "Active" : "Inactive"} />
-        <Detail label="Organization" value={customer.organization?.name} />
         <Detail label="Notes" value={customer.notes} />
       </section>
 
@@ -137,8 +136,6 @@ export function CustomerDetailPage({ customerId }: CustomerDetailPageProps) {
         <CustomerForm
           title="Edit customer"
           mode="edit"
-          requireOrganization={false}
-          organizations={[]}
           initialValues={valuesFromCustomer(customer)}
           busy={formBusy}
           onClose={() => setEditing(false)}

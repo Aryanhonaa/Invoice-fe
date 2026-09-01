@@ -5,14 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/field";
 import { productFormSchema } from "@/schemas/catalog";
-import type { OrganizationSummary } from "@/types/admin";
 import type { Product, ProductFormValues } from "@/types/catalog";
 
 interface ProductFormProps {
   title: string;
   mode: "create" | "edit";
-  requireOrganization: boolean;
-  organizations: OrganizationSummary[];
   initialValues?: Partial<ProductFormValues>;
   busy: boolean;
   onClose: () => void;
@@ -35,8 +32,6 @@ const emptyValues: ProductFormValues = {
 export function ProductForm({
   title,
   mode,
-  requireOrganization,
-  organizations,
   initialValues,
   busy,
   onClose,
@@ -57,10 +52,6 @@ export function ProductForm({
     const parsed = productFormSchema.safeParse(values);
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Check the form and try again.");
-      return;
-    }
-    if (requireOrganization && !values.organizationId) {
-      setError("Organization is required");
       return;
     }
     setError(null);
@@ -168,23 +159,6 @@ export function ProductForm({
             />
           </Field>
         </div>
-        {requireOrganization ? (
-          <Field label="Organization" htmlFor="product-org" required>
-            <SelectInput
-              id="product-org"
-              value={values.organizationId}
-              onChange={(event) => update("organizationId", event.target.value)}
-              required
-            >
-              <option value="">Select organization</option>
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : null}
         {error ? (
           <p className="text-sm text-red-700" role="alert">
             {error}

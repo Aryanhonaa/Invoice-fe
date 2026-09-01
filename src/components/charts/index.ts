@@ -3,7 +3,6 @@ export { CategoryBarChart } from "./category-bar-chart";
 export { DistributionChart } from "./distribution-chart";
 export { ExpenseChart } from "./expense-chart";
 export { InvoiceStatusChart } from "./invoice-status-chart";
-export { OrganizationActivityChart } from "./organization-activity-chart";
 export { PaymentChart } from "./payment-chart";
 export { RevenueChart } from "./revenue-chart";
 export { TeamPerformanceChart } from "./team-performance-chart";

@@ -117,7 +117,7 @@ export function ReportsPage() {
         title={kind === "expenses" ? "Expenses" : "Reports"}
         description={
           kind === "expenses"
-            ? `Track organization expenses for the selected period. ${scopeLabel}.`
+            ? `Track expenses for the selected period. ${scopeLabel}.`
             : `Financial reports for your authorized scope. ${scopeLabel}.`
         }
         actions={
@@ -313,9 +313,6 @@ export function ReportsPage() {
 
       {expenseOpen ? (
         <ExpenseDialog
-          organizationId={organizationId || user?.organizationId || ""}
-          requireOrganization={user?.role === "SUPER_ADMIN"}
-          organizations={report?.organizations ?? []}
           onClose={() => setExpenseOpen(false)}
           onSaved={() => {
             setExpenseOpen(false);
@@ -338,21 +335,14 @@ function formatCell(value: string | undefined, key: string, currency: string): s
 }
 
 function ExpenseDialog({
-  organizationId,
-  requireOrganization,
-  organizations,
   onClose,
   onSaved,
 }: {
-  organizationId: string;
-  requireOrganization: boolean;
-  organizations: Array<{ id: string; name: string }>;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const { notify } = useToast();
   const [busy, setBusy] = useState(false);
-  const [orgId, setOrgId] = useState(organizationId);
   const [categoryName, setCategoryName] = useState("Office");
   const [amount, setAmount] = useState("");
   const [incurredOn, setIncurredOn] = useState(new Date().toISOString().slice(0, 10));
@@ -363,7 +353,6 @@ function ExpenseDialog({
     setBusy(true);
     try {
       await createExpense({
-        organizationId: requireOrganization ? orgId : undefined,
         categoryName,
         amount,
         incurredOn,
@@ -395,23 +384,6 @@ function ExpenseDialog({
       }
     >
       <div className="space-y-3">
-        {requireOrganization ? (
-          <Field label="Organization" htmlFor="exp-org" required>
-            <SelectInput
-              id="exp-org"
-              value={orgId}
-              onChange={(event) => setOrgId(event.target.value)}
-              required
-            >
-              <option value="">Select organization</option>
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : null}
         <Field label="Category" htmlFor="exp-cat" required>
           <TextInput
             id="exp-cat"

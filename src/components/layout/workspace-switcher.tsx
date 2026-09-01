@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 
 export function WorkspaceSwitcher() {
   const { user } = useAuth();
-  const { teamId, teams, loading, error, scopeLabel, organizationName, setTeamId } = useWorkspace();
+  const { teamId, teams, loading, error, scopeLabel, setTeamId } = useWorkspace();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -42,7 +42,7 @@ export function WorkspaceSwitcher() {
   if (teams.length <= 1) {
     return (
       <div className="hidden min-w-0 sm:block">
-        <p className="truncate text-xs text-muted">{organizationName ?? "Company"}</p>
+        <p className="truncate text-xs text-muted">Company</p>
         <p className="truncate text-sm font-medium text-slate-700">{scopeLabel || "Office"}</p>
         {error ? <p className="text-[11px] text-red-600">{error}</p> : null}
       </div>
@@ -61,7 +61,7 @@ export function WorkspaceSwitcher() {
         onClick={() => setOpen((current) => !current)}
       >
         <span className="min-w-0 truncate text-left">
-          <span className="block truncate text-xs text-muted">{organizationName ?? "Company"}</span>
+          <span className="block truncate text-xs text-muted">Company</span>
           <span className="block truncate font-medium">{loading ? "Loading…" : scopeLabel}</span>
         </span>
       </Button>

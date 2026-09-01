@@ -7,7 +7,7 @@ import { useWorkspace } from "@/providers/workspace-provider";
 
 export function SettingsPage() {
   const { user, loading } = useAuth();
-  const { organizationName, scopeLabel } = useWorkspace();
+  const { scopeLabel } = useWorkspace();
 
   if (loading || !user) {
     return <p className="text-sm text-muted">Loading settings…</p>;
@@ -44,7 +44,7 @@ export function SettingsPage() {
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Workspace</dt>
               <dd className="mt-1 text-sm">
-                {organizationName ?? "Organization"} · {scopeLabel}
+              <dd className="mt-1 text-sm">{scopeLabel}</dd>
               </dd>
             </div>
           ) : null}
@@ -54,8 +54,8 @@ export function SettingsPage() {
         <section className="rounded-[12px] border border-border bg-surface px-5 py-4">
           <h2 className="text-sm font-semibold text-foreground">Platform</h2>
           <p className="mt-2 text-sm text-muted">
-            Organizations are managed from Organizations. This is an internal company system, not a
-            subscription platform.
+            This is an internal company billing workspace. Teams and administrators are managed from
+            those pages.
           </p>
         </section>
       ) : null}

@@ -13,10 +13,8 @@ import { useToast } from "@/providers/toast-provider";
 import { listCustomers } from "@/services/customers.service";
 import { createInvoice, getInvoice, updateInvoice } from "@/services/invoices.service";
 import { listMembers } from "@/services/members.service";
-import { listOrganizations } from "@/services/organizations.service";
 import { listProducts } from "@/services/products.service";
 import { listTeams } from "@/services/teams.service";
-import type { OrganizationSummary } from "@/types/admin";
 import type { Customer, Product } from "@/types/catalog";
 import type { InvoiceFormValues } from "@/types/invoice";
 import type { MemberUser } from "@/types/member";
@@ -38,7 +36,6 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -57,12 +54,11 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
         setError("You can inspect invoices but cannot edit them.");
         return;
       }
-      const [customerResult, productResult, teamResult, orgs, memberResult, invoice] =
+      const [customerResult, productResult, teamResult, memberResult, invoice] =
         await Promise.all([
           listCustomers({ status: "ACTIVE", pageSize: 50 }),
           listProducts({ status: "ACTIVE", pageSize: 50 }),
           listTeams({ status: "ACTIVE", pageSize: 50 }),
-          user?.role === "SUPER_ADMIN" ? listOrganizations() : Promise.resolve([]),
           canListOrgMembers
             ? listMembers({ status: "ACTIVE", pageSize: 50 })
             : Promise.resolve({ items: [] as MemberUser[] }),
@@ -75,7 +71,6 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
       setCustomers(customerResult.items);
       setProducts(productResult.items);
       setTeams(teamResult.items);
-      setOrganizations(orgs);
       setMembers(
         canListOrgMembers
           ? memberResult.items
@@ -153,8 +148,6 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
       ) : (
         <InvoiceForm
           mode={invoiceId ? "edit" : "create"}
-          requireOrganization={user?.role === "SUPER_ADMIN"}
-          organizations={organizations}
           customers={customers}
           products={products}
           teams={teams}

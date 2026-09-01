@@ -32,7 +32,7 @@ export function CustomersPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { notify } = useToast();
-  const { organizationId, tenantListsReady, scopeLabel, organizations } = useWorkspace();
+  const { organizationId, tenantListsReady, scopeLabel } = useWorkspace();
   const canCreate = Boolean(hasPermission(user, "CUSTOMERS_CREATE"));
   const canDelete = hasPermission(user, "CUSTOMERS_DELETE");
 
@@ -180,12 +180,7 @@ export function CustomersPage() {
         </div>
       </form>
 
-      {!tenantListsReady ? (
-        <EmptyState
-          title="Select an organization"
-          description="Choose an organization in the workspace switcher to view that tenant's customers."
-        />
-      ) : loading && !result ? (
+      {loading && !result ? (
         <TableSkeleton cols={4} />
       ) : error && !result ? (
         <ErrorState title="We couldn't load your customers." message={error} onRetry={() => void load()} />
@@ -262,8 +257,6 @@ export function CustomersPage() {
         <CustomerForm
           title="Add customer"
           mode="create"
-          requireOrganization={user?.role === "SUPER_ADMIN"}
-          organizations={organizations}
           initialValues={{ organizationId: organizationId ?? "" }}
           busy={formBusy}
           onClose={() => setFormMode(null)}
@@ -275,8 +268,6 @@ export function CustomersPage() {
         <CustomerForm
           title="Edit customer"
           mode="edit"
-          requireOrganization={false}
-          organizations={organizations}
           initialValues={valuesFromCustomer(editing)}
           busy={formBusy}
           onClose={() => {
