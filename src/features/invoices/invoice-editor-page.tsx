@@ -142,7 +142,7 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
       {loading ? (
         <TableSkeleton cols={3} rows={4} />
       ) : error && !initialValues && invoiceId ? (
-        <div role="alert" className="rounded-[12px] border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+        <div role="alert" className="rounded-2xl border border-border bg-primary-soft p-6 text-sm text-primary">
           {error}
         </div>
       ) : (

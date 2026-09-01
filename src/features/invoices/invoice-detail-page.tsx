@@ -150,7 +150,7 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
         </Link>
       </p>
 
-      <section className="grid gap-4 rounded-[12px] border border-border bg-surface p-6 md:grid-cols-2">
+      <section className="grid gap-4 rounded-2xl border border-border bg-surface p-6 md:grid-cols-2">
         <div>
           <h2 className="text-sm font-semibold text-foreground">Customer</h2>
           <p className="mt-2 text-sm font-medium text-foreground">{invoice.customer.name}</p>
@@ -176,10 +176,10 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
         </div>
       </section>
 
-      <div className="overflow-hidden rounded-[12px] border border-border bg-surface">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-muted-soft text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-4 py-3 font-medium">Item</th>
               <th className="px-4 py-3 font-medium">Qty</th>
@@ -191,24 +191,24 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
           </thead>
           <tbody>
             {invoice.items.map((item) => (
-              <tr key={item.id} className="border-t border-slate-100">
+              <tr key={item.id} className="border-t border-border">
                 <td className="px-4 py-3">
-                  <p className="font-medium text-slate-900">{item.description}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-medium text-foreground">{item.description}</p>
+                  <p className="text-xs text-muted">
                     {[item.sku, item.unit, item.catalogKind].filter(Boolean).join(" · ")}
                   </p>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{item.quantity}</td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3 text-muted">{item.quantity}</td>
+                <td className="px-4 py-3 text-muted">
                   {formatMoney(item.unitPrice, invoice.currency)}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3 text-muted">
                   {formatMoney(item.discount, invoice.currency)}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3 text-muted">
                   {formatMoney(item.taxAmount, invoice.currency)}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3 text-muted">
                   {formatMoney(item.lineTotal, invoice.currency)}
                 </td>
               </tr>
@@ -216,7 +216,7 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
           </tbody>
         </table>
         </div>
-        <div className="grid gap-2 border-t border-slate-100 px-4 py-4 text-sm md:ml-auto md:w-80">
+        <div className="grid gap-2 border-t border-border px-4 py-4 text-sm md:ml-auto md:w-80">
           <Row label="Subtotal" value={formatMoney(invoice.subtotal, invoice.currency)} />
           <Row label="Discount" value={formatMoney(invoice.discountAmount, invoice.currency)} />
           <Row label="Tax" value={formatMoney(invoice.taxAmount, invoice.currency)} />
@@ -226,21 +226,21 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
         </div>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-2xl border border-border bg-surface p-6">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <h3 className="text-sm font-semibold text-slate-900">Payment history</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="text-sm font-semibold text-foreground">Payment history</h3>
+          <p className="text-sm text-muted">
             Paid {formatMoney(invoice.amountPaid, invoice.currency)} of{" "}
             {formatMoney(invoice.total, invoice.currency)} · Balance{" "}
             {formatMoney(invoice.balanceDue, invoice.currency)}
           </p>
         </div>
         {invoice.payments.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">No payments recorded yet.</p>
+          <p className="mt-4 text-sm text-muted">No payments recorded yet.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="text-xs uppercase tracking-wide text-slate-500">
+              <thead className="text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="py-2 pr-4 font-medium">Date</th>
                   <th className="py-2 pr-4 font-medium">Amount</th>
@@ -250,17 +250,17 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
               </thead>
               <tbody>
                 {invoice.payments.map((payment) => (
-                  <tr key={payment.id} className="border-t border-slate-100">
-                    <td className="py-2 pr-4 text-slate-600">
+                  <tr key={payment.id} className="border-t border-border">
+                    <td className="py-2 pr-4 text-muted">
                       {(payment.paidAt ?? payment.createdAt).slice(0, 10)}
                     </td>
-                    <td className="py-2 pr-4 text-slate-600">
+                    <td className="py-2 pr-4 text-muted">
                       {formatMoney(payment.amount, payment.currency)}
                     </td>
-                    <td className="py-2 pr-4 text-slate-600">
+                    <td className="py-2 pr-4 text-muted">
                       {payment.method.replaceAll("_", " ")}
                     </td>
-                    <td className="py-2 text-slate-600">{payment.notes || "—"}</td>
+                    <td className="py-2 text-muted">{payment.notes || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -272,15 +272,15 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
       {(invoice.notes || invoice.terms) && (
         <section className="grid gap-4 md:grid-cols-2">
           {invoice.notes ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h3 className="text-sm font-semibold text-slate-900">Notes</h3>
-              <p className="mt-2 text-sm text-slate-600">{invoice.notes}</p>
+            <div className="rounded-2xl border border-border bg-surface p-6">
+              <h3 className="text-sm font-semibold text-foreground">Notes</h3>
+              <p className="mt-2 text-sm text-muted">{invoice.notes}</p>
             </div>
           ) : null}
           {invoice.terms ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h3 className="text-sm font-semibold text-slate-900">Terms</h3>
-              <p className="mt-2 text-sm text-slate-600">{invoice.terms}</p>
+            <div className="rounded-2xl border border-border bg-surface p-6">
+              <h3 className="text-sm font-semibold text-foreground">Terms</h3>
+              <p className="mt-2 text-sm text-muted">{invoice.terms}</p>
             </div>
           ) : null}
         </section>
@@ -344,15 +344,15 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
 function Detail({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-medium text-slate-900">{value || "—"}</p>
+      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 text-sm font-medium text-foreground">{value || "—"}</p>
     </div>
   );
 }
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className={`flex justify-between ${strong ? "font-semibold text-slate-900" : "text-slate-600"}`}>
+    <div className={`flex justify-between ${strong ? "font-semibold text-foreground" : "text-muted"}`}>
       <span>{label}</span>
       <span>{value}</span>
     </div>

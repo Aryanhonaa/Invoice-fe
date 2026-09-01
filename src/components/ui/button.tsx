@@ -11,7 +11,8 @@ export type ButtonVariant =
   | "success"
   | "warning"
   | "edit"
-  | "link";
+  | "link"
+  | "sidebarGhost";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -22,18 +23,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:brightness-95",
+    "bg-primary text-primary-foreground hover:bg-primary-hover active:brightness-95",
   secondary:
-    "border border-border bg-surface text-slate-700 shadow-sm hover:bg-slate-50 active:bg-slate-100",
+    "border border-border bg-surface text-foreground hover:bg-muted-soft active:bg-muted-soft",
   outline:
-    "border border-border bg-transparent text-slate-700 hover:bg-slate-50 active:bg-slate-100",
-  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200",
-  danger: "bg-danger text-white shadow-sm hover:bg-red-700 active:bg-red-800",
-  dangerSoft: "border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100",
-  success: "border border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-100",
-  warning: "border border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100",
-  edit: "border border-border bg-surface text-slate-700 shadow-sm hover:bg-slate-50",
+    "border border-border bg-transparent text-foreground hover:bg-muted-soft active:bg-muted-soft",
+  ghost: "text-muted hover:bg-muted-soft hover:text-foreground active:bg-muted-soft",
+  danger: "bg-primary text-primary-foreground hover:bg-primary-hover active:brightness-95",
+  dangerSoft: "border border-border bg-primary-soft text-primary hover:bg-primary-soft",
+  success: "border border-border bg-success-soft text-success hover:bg-success-soft",
+  warning: "border border-border bg-warning-soft text-warning hover:bg-warning-soft",
+  edit: "border border-border bg-surface text-foreground hover:bg-muted-soft",
   link: "h-auto px-0 text-primary underline-offset-4 hover:underline",
+  sidebarGhost: "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
 };
 
 const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {

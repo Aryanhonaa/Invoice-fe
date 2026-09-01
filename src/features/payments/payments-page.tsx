@@ -144,7 +144,7 @@ export function PaymentsPage() {
       />
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3 xl:grid-cols-7"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3 xl:grid-cols-7"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -223,7 +223,7 @@ export function PaymentsPage() {
       </form>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading payments…</p>
+        <p className="text-sm text-muted">Loading payments…</p>
       ) : error ? (
         <ErrorState title="We couldn't load your payments." message={error} onRetry={() => void load()} />
       ) : !result || result.items.length === 0 ? (
@@ -247,7 +247,7 @@ export function PaymentsPage() {
             </THead>
             <tbody>
               {result.items.map((payment) => (
-                <tr key={payment.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={payment.id} className="border-t border-border hover:bg-muted-soft">
                   <Td muted>{(payment.paidAt ?? payment.createdAt).slice(0, 10)}</Td>
                   <Td>
                     <Link href={`/invoices/${payment.invoiceId}`} className="font-medium hover:underline">
@@ -266,20 +266,20 @@ export function PaymentsPage() {
 
       {pickerOpen ? (
         <Dialog title="Choose an invoice" onClose={() => setPickerOpen(false)}>
-          <p className="mb-4 text-sm text-slate-500">Select the invoice this payment belongs to.</p>
+          <p className="mb-4 text-sm text-muted">Select the invoice this payment belongs to.</p>
           <div className="max-h-80 space-y-1 overflow-y-auto">
             {payableInvoices.map((invoice) => (
               <button
                 key={invoice.id}
                 type="button"
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50"
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted-soft"
                 onClick={() => {
                   setPickerOpen(false);
                   setRecordInvoice(invoice);
                 }}
               >
-                <span className="font-medium text-slate-900">{invoice.invoiceNumber}</span>
-                <span className="text-slate-500">{invoice.customer.name}</span>
+                <span className="font-medium text-foreground">{invoice.invoiceNumber}</span>
+                <span className="text-muted">{invoice.customer.name}</span>
               </button>
             ))}
           </div>

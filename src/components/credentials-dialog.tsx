@@ -52,7 +52,7 @@ export function CredentialsDialog({
       }
     >
       <div className="space-y-4 text-sm">
-        <p className="rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+        <p className="rounded-[10px] border border-border bg-muted-soft px-3 py-2 text-foreground">
           Save these credentials before closing. The temporary password will not be shown again.
         </p>
         <dl className="grid gap-2">
@@ -93,7 +93,7 @@ export function CredentialsDialog({
             Copy password
           </Button>
         </div>
-        {copied ? <p className="text-xs text-emerald-700">Copied {copied}.</p> : null}
+        {copied ? <p className="text-xs text-success">Copied {copied}.</p> : null}
       </div>
     </Dialog>
   );

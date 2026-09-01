@@ -21,7 +21,7 @@ export function Field({ label, htmlFor, error, hint, required, children }: Field
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={htmlFor} className="block text-sm font-medium text-foreground">
         {label}
         {required ? (
           <span className="ml-0.5 text-danger" aria-hidden="true">
@@ -44,7 +44,7 @@ export function Field({ label, htmlFor, error, hint, required, children }: Field
 }
 
 export const controlClass =
-  "w-full rounded-[8px] border border-slate-300 bg-surface px-3 py-2 text-sm text-foreground placeholder:text-slate-400 outline-none transition-colors hover:border-slate-400 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 aria-[invalid=true]:border-danger";
+  "w-full rounded-[8px] border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted outline-none transition-colors hover:border-foreground/20 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted-soft disabled:text-muted aria-[invalid=true]:border-danger";
 
 export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(controlClass, className)} {...props} />;
@@ -64,12 +64,12 @@ interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export function Checkbox({ label, id, className, ...props }: CheckboxProps) {
   return (
-    <label htmlFor={id} className="inline-flex items-center gap-2 text-sm text-slate-700">
+    <label htmlFor={id} className="inline-flex items-center gap-2 text-sm text-foreground">
       <input
         id={id}
         type="checkbox"
         className={cn(
-          "h-4 w-4 rounded border-slate-300 text-primary focus-visible:ring-2 focus-visible:ring-ring/30",
+          "h-4 w-4 rounded border-border text-primary focus-visible:ring-2 focus-visible:ring-ring/20",
           className,
         )}
         {...props}

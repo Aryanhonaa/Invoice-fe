@@ -327,10 +327,10 @@ function NeedsAttention({
       {items.length === 0 ? (
         <p className="text-sm text-muted">Nothing needs attention in this period.</p>
       ) : (
-        <ul className="divide-y divide-slate-100 rounded-[12px] border border-border bg-surface">
+        <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
           {items.map((item) => (
             <li key={item.title}>
-              <Link href={item.href} className="block px-5 py-4 hover:bg-slate-50">
+              <Link href={item.href} className="block px-5 py-4 hover:bg-muted-soft">
                 <p className="text-sm font-medium text-foreground">{item.title}</p>
                 <p className="mt-1 text-sm text-muted">{item.detail}</p>
               </Link>
@@ -364,17 +364,17 @@ function RecentList({
       {rows.length === 0 ? (
         <p className="text-sm text-muted">{empty}</p>
       ) : (
-        <ul className="divide-y divide-slate-100 rounded-[12px] border border-border bg-surface">
+        <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
           {rows.map((row) => (
             <li key={row.id}>
-              <Link href={row.href} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
+              <Link href={row.href} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-muted-soft">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">{row.primary}</p>
                   <p className="truncate text-xs text-muted">{row.secondary}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {row.status ? <StatusBadge status={row.status} /> : null}
-                  <span className="text-sm tabular-nums text-slate-700">{row.meta}</span>
+                  <span className="text-sm tabular-nums text-foreground">{row.meta}</span>
                 </div>
               </Link>
             </li>

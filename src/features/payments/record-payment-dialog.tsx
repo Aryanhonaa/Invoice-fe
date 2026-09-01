@@ -69,25 +69,25 @@ export function RecordPaymentDialog({ invoice, onClose, onRecorded }: RecordPaym
       }
     >
       <div className="space-y-4">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           Manual payment only. Stripe and PayPal are not connected.
         </p>
-        <div className="grid gap-3 rounded-lg bg-slate-50 p-3 text-sm sm:grid-cols-3">
+        <div className="grid gap-3 rounded-lg bg-muted-soft p-3 text-sm sm:grid-cols-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Total</p>
-            <p className="mt-1 font-medium text-slate-900">
+            <p className="text-xs uppercase tracking-wide text-muted">Total</p>
+            <p className="mt-1 font-medium text-foreground">
               {formatMoney(invoice.total, invoice.currency)}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Paid</p>
-            <p className="mt-1 font-medium text-slate-900">
+            <p className="text-xs uppercase tracking-wide text-muted">Paid</p>
+            <p className="mt-1 font-medium text-foreground">
               {formatMoney(invoice.amountPaid, invoice.currency)}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Balance</p>
-            <p className="mt-1 font-medium text-slate-900">
+            <p className="text-xs uppercase tracking-wide text-muted">Balance</p>
+            <p className="mt-1 font-medium text-foreground">
               {formatMoney(invoice.balanceDue, invoice.currency)}
             </p>
           </div>

@@ -149,7 +149,7 @@ export function ProductsPage() {
       />
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-4"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -232,10 +232,10 @@ export function ProductsPage() {
             </THead>
             <tbody>
               {result.items.map((product) => (
-                <tr key={product.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={product.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <span className="font-medium">{product.name}</span>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted">
                       {product.kind === "SERVICE" ? "Service" : "Product"}
                       {product.sku ? ` · ${product.sku}` : ""}
                     </p>

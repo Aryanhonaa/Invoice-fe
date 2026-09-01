@@ -151,12 +151,12 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
   }
 
   if (authLoading || !canManage) {
-    return <p className="text-sm text-slate-500">Checking access…</p>;
+    return <p className="text-sm text-muted">Checking access…</p>;
   }
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
+      <div className="rounded-2xl border border-border bg-surface p-8 text-sm text-muted">
         Loading member…
       </div>
     );
@@ -164,7 +164,7 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
 
   if (error || !member) {
     return (
-      <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+      <div role="alert" className="rounded-2xl border border-border bg-primary-soft p-6 text-sm text-primary">
         {error ?? "Member not found."}
       </div>
     );
@@ -174,17 +174,17 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted">
             <Link href="/members" className="hover:underline">
               Members
             </Link>
             <span className="mx-2">/</span>
             {member.firstName} {member.lastName}
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">
             {member.firstName} {member.lastName}
           </h2>
-          <p className="mt-1 text-sm text-slate-500">{member.email}</p>
+          <p className="mt-1 text-sm text-muted">{member.email}</p>
         </div>
         <ActionGroup>
           <EditAction size="md" onClick={() => setEditing(true)} />
@@ -196,34 +196,34 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
         </ActionGroup>
       </div>
 
-      <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 md:grid-cols-2">
+      <section className="grid gap-4 rounded-2xl border border-border bg-surface p-6 md:grid-cols-2">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Status</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
+          <p className="text-xs uppercase tracking-wide text-muted">Status</p>
+          <p className="mt-1 text-sm font-medium text-foreground">
             {member.status === "ACTIVE" ? "Active" : "Inactive"}
           </p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Phone</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">{member.phone ?? "—"}</p>
+          <p className="text-xs uppercase tracking-wide text-muted">Phone</p>
+          <p className="mt-1 text-sm font-medium text-foreground">{member.phone ?? "—"}</p>
         </div>
       </section>
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Teams</h3>
+          <h3 className="text-lg font-semibold text-foreground">Teams</h3>
           <Button onClick={() => setAssignOpen(true)} disabled={member.status !== "ACTIVE"}>
             Assign to team
           </Button>
         </div>
         {member.teams.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted">
             This member is not assigned to any team.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="bg-muted-soft text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="px-4 py-3 font-medium">Team</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -232,13 +232,13 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
               </thead>
               <tbody>
                 {member.teams.map((team) => (
-                  <tr key={team.id} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-medium text-slate-900">
+                  <tr key={team.id} className="border-t border-border">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       <Link href={`/teams/${team.id}`} className="hover:underline">
                         {team.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-muted">
                       {team.isActive ? "Active" : "Inactive"}
                     </td>
                     <td className="px-4 py-3">
@@ -296,7 +296,7 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
             </SelectInput>
           </Field>
           {availableTeams.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">No unassigned active teams remain.</p>
+            <p className="mt-3 text-sm text-muted">No unassigned active teams remain.</p>
           ) : null}
         </Dialog>
       ) : null}

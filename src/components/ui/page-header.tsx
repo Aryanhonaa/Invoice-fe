@@ -33,7 +33,7 @@ export function Surface({
   return (
     <div
       className={cn(
-        "rounded-[12px] border border-border bg-surface",
+        "rounded-2xl border border-border bg-surface",
         padded && "p-5 md:p-6",
         className,
       )}

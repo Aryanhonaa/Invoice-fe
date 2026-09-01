@@ -144,7 +144,7 @@ export function CustomersPage() {
       />
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -213,13 +213,13 @@ export function CustomersPage() {
             </THead>
             <tbody>
               {result.items.map((customer) => (
-                <tr key={customer.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={customer.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <Link href={`/customers/${customer.id}`} className="font-medium hover:underline">
                       {customer.name}
                     </Link>
                     {customer.company ? (
-                      <p className="text-xs text-slate-500">{customer.company}</p>
+                      <p className="text-xs text-muted">{customer.company}</p>
                     ) : null}
                   </Td>
                   <Td muted>{customer.email ?? "—"}</Td>

@@ -186,7 +186,7 @@ export function MemberForm({
                 onChange={(event) => update("temporaryPassword", event.target.value)}
               />
             </Field>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted">
               Leave blank to generate a secure temporary password. It will be shown once.
             </p>
             <Field label="Status" htmlFor="member-status" error={errors.status}>
@@ -202,15 +202,15 @@ export function MemberForm({
               </SelectInput>
             </Field>
             <fieldset>
-              <legend className="mb-2 text-sm font-medium text-slate-700">Assign to teams</legend>
+              <legend className="mb-2 text-sm font-medium text-foreground">Assign to teams</legend>
               {teamsLoading ? (
-                <p className="text-sm text-slate-500">Loading teams…</p>
+                <p className="text-sm text-muted">Loading teams…</p>
               ) : teams.length === 0 ? (
-                <p className="text-sm text-slate-500">No active teams available.</p>
+                <p className="text-sm text-muted">No active teams available.</p>
               ) : (
-                <div className="grid max-h-40 gap-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
+                <div className="grid max-h-40 gap-2 overflow-y-auto rounded-lg border border-border p-3">
                   {teams.map((team) => (
-                    <label key={team.id} className="flex items-center gap-2 text-sm text-slate-700">
+                    <label key={team.id} className="flex items-center gap-2 text-sm text-foreground">
                       <input
                         type="checkbox"
                         checked={values.teamIds.includes(team.id)}
@@ -225,7 +225,7 @@ export function MemberForm({
           </>
         ) : null}
         {formError ? (
-          <p className="text-sm text-red-700" role="alert">
+          <p className="text-sm text-primary" role="alert">
             {formError}
           </p>
         ) : null}

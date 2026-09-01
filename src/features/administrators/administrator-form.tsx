@@ -152,7 +152,7 @@ export function AdministratorForm({
           />
         </Field>
         {mode === "create" ? (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted">
             A temporary password is generated automatically and shown once after you save.
           </p>
         ) : null}

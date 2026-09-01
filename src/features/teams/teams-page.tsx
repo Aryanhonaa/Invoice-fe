@@ -122,7 +122,7 @@ export function TeamsPage() {
       />
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -159,7 +159,7 @@ export function TeamsPage() {
       </form>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading teams…</p>
+        <p className="text-sm text-muted">Loading teams…</p>
       ) : error ? (
         <ErrorState title="We couldn't load teams." message={error} onRetry={() => void load()} />
       ) : !result || result.items.length === 0 ? (
@@ -183,7 +183,7 @@ export function TeamsPage() {
             </THead>
             <tbody>
               {result.items.map((team) => (
-                <tr key={team.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={team.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <Link href={`/teams/${team.id}`} className="font-medium hover:underline">
                       {team.name}

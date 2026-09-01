@@ -180,7 +180,7 @@ export function CustomerForm({
           />
         </MoreOptions>
         {error ? (
-          <p className="text-sm text-red-700" role="alert">
+          <p className="text-sm text-primary" role="alert">
             {error}
           </p>
         ) : null}
@@ -203,8 +203,8 @@ function AddressFields({
   const addressStarted = Object.values(values).some((value) => value.trim().length > 0);
 
   return (
-    <fieldset className="grid gap-3 rounded-lg border border-slate-200 p-4">
-      <legend className="px-1 text-sm font-medium text-slate-700">{title}</legend>
+    <fieldset className="grid gap-3 rounded-lg border border-border p-4">
+      <legend className="px-1 text-sm font-medium text-foreground">{title}</legend>
       <Field label="Line 1" htmlFor={`${prefix}-line1`} required={addressStarted}>
         <TextInput
           id={`${prefix}-line1`}

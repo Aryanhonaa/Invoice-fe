@@ -30,11 +30,11 @@ export function Stepper({ steps, current, highestReached, onStepSelect }: Steppe
                 disabled={!reachable || !onStepSelect}
                 onClick={() => reachable && onStepSelect?.(index)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-[12px] border px-3 py-2.5 text-left transition-colors",
+                  "flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors",
                   active
-                    ? "border-primary/30 bg-indigo-50"
+                    ? "border-primary/25 bg-primary-soft"
                     : complete
-                      ? "border-border bg-surface hover:bg-slate-50"
+                      ? "border-border bg-surface hover:bg-muted-soft"
                       : "border-transparent bg-transparent",
                   reachable ? "cursor-pointer" : "cursor-default opacity-70",
                 )}
@@ -45,15 +45,15 @@ export function Stepper({ steps, current, highestReached, onStepSelect }: Steppe
                     active
                       ? "bg-primary text-primary-foreground"
                       : complete
-                        ? "bg-emerald-600 text-white"
-                        : "bg-slate-200 text-slate-600",
+                        ? "bg-foreground text-surface"
+                        : "bg-muted-soft text-muted",
                   )}
                   aria-current={active ? "step" : undefined}
                 >
                   {complete ? "✓" : index + 1}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-slate-900">{step.label}</span>
+                  <span className="block truncate text-sm font-medium text-foreground">{step.label}</span>
                   {step.description ? (
                     <span className="hidden truncate text-xs text-muted lg:block">{step.description}</span>
                   ) : null}
@@ -67,7 +67,7 @@ export function Stepper({ steps, current, highestReached, onStepSelect }: Steppe
         })}
       </ol>
       <p className="text-sm text-muted md:hidden">
-        Step {current + 1} of {steps.length}: <span className="font-medium text-slate-900">{steps[current]?.label}</span>
+        Step {current + 1} of {steps.length}: <span className="font-medium text-foreground">{steps[current]?.label}</span>
       </p>
     </nav>
   );

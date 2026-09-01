@@ -15,7 +15,7 @@ export default function DashboardLayout({
 
   if (loading || !user) {
     return (
-      <div className="flex flex-1 items-center justify-center p-8 text-sm text-slate-500">
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted">
         Loading…
       </div>
     );
@@ -24,7 +24,7 @@ export default function DashboardLayout({
   return (
     <Suspense
       fallback={
-        <div className="flex flex-1 items-center justify-center p-8 text-sm text-slate-500">
+        <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted">
           Loading…
         </div>
       }

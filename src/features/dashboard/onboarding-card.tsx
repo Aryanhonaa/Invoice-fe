@@ -32,7 +32,7 @@ export function OnboardingCard() {
   }
 
   return (
-    <section className="rounded-[12px] border border-border bg-surface p-5">
+    <section className="rounded-2xl border border-border bg-surface p-5">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
           <h2 className="text-sm font-semibold text-foreground">Welcome. Let’s get your account ready.</h2>

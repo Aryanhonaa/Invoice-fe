@@ -147,7 +147,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   }
 
   if (authLoading || user?.role !== "SUPER_ADMIN") {
-    return <p className="text-sm text-slate-500">Checking access…</p>;
+    return <p className="text-sm text-muted">Checking access…</p>;
   }
 
   return (
@@ -166,7 +166,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
       ) : null}
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -203,7 +203,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
       </form>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading administrators…</p>
+        <p className="text-sm text-muted">Loading administrators…</p>
       ) : error ? (
         <ErrorState title="We couldn't load administrators." message={error} onRetry={() => void load()} />
       ) : !result || result.items.length === 0 ? (
@@ -237,7 +237,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
             </THead>
             <tbody>
               {result.items.map((admin) => (
-                <tr key={admin.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={admin.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <span className="font-medium">
                       {admin.firstName} {admin.lastName}
@@ -315,10 +315,10 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
 
       {generatedPassword ? (
         <Dialog title="Temporary password" onClose={() => setGeneratedPassword(null)}>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted">
             Share this password now. It is not stored in plain text and will not be shown again.
           </p>
-          <p className="mt-4 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm break-all">
+          <p className="mt-4 rounded-lg bg-muted-soft px-3 py-2 font-mono text-sm break-all">
             {generatedPassword}
           </p>
         </Dialog>

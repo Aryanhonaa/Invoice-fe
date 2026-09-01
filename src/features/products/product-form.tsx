@@ -160,7 +160,7 @@ export function ProductForm({
           </Field>
         </div>
         {error ? (
-          <p className="text-sm text-red-700" role="alert">
+          <p className="text-sm text-primary" role="alert">
             {error}
           </p>
         ) : null}

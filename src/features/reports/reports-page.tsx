@@ -148,7 +148,7 @@ export function ReportsPage() {
       />
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2 xl:grid-cols-6"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-2 xl:grid-cols-6"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -215,7 +215,7 @@ export function ReportsPage() {
       </form>
 
       {loading && !report ? (
-        <p className="text-sm text-slate-500">Loading report…</p>
+        <p className="text-sm text-muted">Loading report…</p>
       ) : error || !report ? (
         <ErrorState title="We couldn't load this report." message={error} onRetry={() => void load()} />
       ) : (
@@ -263,19 +263,19 @@ export function ReportsPage() {
             />
           </div>
 
-          <section className="rounded-xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-sm font-semibold text-slate-900">{REPORT_LABELS[report.kind]}</h3>
-              <p className="mt-1 text-xs text-slate-500">
+          <section className="rounded-2xl border border-border bg-surface">
+            <div className="border-b border-border px-5 py-4">
+              <h3 className="text-sm font-semibold text-foreground">{REPORT_LABELS[report.kind]}</h3>
+              <p className="mt-1 text-xs text-muted">
                 {report.dateFrom.slice(0, 10)} – {report.dateTo.slice(0, 10)} · {report.scope.replaceAll("_", " ")}
               </p>
             </div>
             {report.table.rows.length === 0 ? (
-              <p className="px-5 py-8 text-sm text-slate-500">No aggregated rows for this range.</p>
+              <p className="px-5 py-8 text-sm text-muted">No aggregated rows for this range.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="bg-muted-soft text-xs uppercase tracking-wide text-muted">
                     <tr>
                       {report.table.columns.map((column) => (
                         <th key={column.key} className="px-5 py-3 font-medium">
@@ -286,9 +286,9 @@ export function ReportsPage() {
                   </thead>
                   <tbody>
                     {report.table.rows.map((row, index) => (
-                      <tr key={`${row[report.table.columns[0]?.key ?? "id"]}-${index}`} className="border-t border-slate-100">
+                      <tr key={`${row[report.table.columns[0]?.key ?? "id"]}-${index}`} className="border-t border-border">
                         {report.table.columns.map((column) => (
-                          <td key={column.key} className="px-5 py-3 text-slate-600">
+                          <td key={column.key} className="px-5 py-3 text-muted">
                             {formatCell(row[column.key], column.key, currency)}
                           </td>
                         ))}
@@ -299,7 +299,7 @@ export function ReportsPage() {
               </div>
             )}
             {report.table.total > report.table.pageSize ? (
-              <div className="border-t border-slate-100 px-5 py-3">
+              <div className="border-t border-border px-5 py-3">
                 <Pagination
                   page={report.table.page}
                   totalPages={Math.max(1, Math.ceil(report.table.total / report.table.pageSize))}

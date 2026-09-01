@@ -17,21 +17,21 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT: "bg-slate-100 text-slate-700",
-  SENT: "bg-indigo-50 text-indigo-800",
-  VIEWED: "bg-blue-50 text-blue-800",
-  PENDING: "bg-slate-100 text-slate-700",
-  PARTIALLY_PAID: "bg-amber-50 text-amber-800",
-  PAID: "bg-emerald-50 text-emerald-800",
-  UNPAID: "bg-slate-100 text-slate-700",
-  OVERDUE: "bg-red-50 text-red-800",
-  CANCELLED: "bg-slate-100 text-slate-500",
-  COMPLETED: "bg-emerald-50 text-emerald-800",
-  FAILED: "bg-red-50 text-red-700",
-  REFUNDED: "bg-slate-100 text-slate-700",
-  ACTIVE: "bg-emerald-50 text-emerald-800",
-  INACTIVE: "bg-slate-100 text-slate-500",
-  NONE: "bg-slate-100 text-slate-500",
+  DRAFT: "border-border bg-muted-soft text-muted",
+  SENT: "border-border bg-primary-soft text-primary",
+  VIEWED: "border-border bg-muted-soft text-foreground",
+  PENDING: "border-border bg-muted-soft text-muted",
+  PARTIALLY_PAID: "border-border bg-warning-soft text-warning",
+  PAID: "border-border bg-success-soft text-success",
+  UNPAID: "border-border bg-muted-soft text-foreground",
+  OVERDUE: "border-border bg-primary-soft text-primary",
+  CANCELLED: "border-border bg-muted-soft text-muted",
+  COMPLETED: "border-border bg-success-soft text-success",
+  FAILED: "border-border bg-primary-soft text-primary",
+  REFUNDED: "border-border bg-muted-soft text-foreground",
+  ACTIVE: "border-border bg-success-soft text-success",
+  INACTIVE: "border-border bg-muted-soft text-muted",
+  NONE: "border-border bg-muted-soft text-muted",
 };
 
 export function statusLabel(status: string): string {
@@ -42,8 +42,8 @@ export function StatusBadge({ status }: { status: string }) {
   const key = status.toUpperCase();
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
-        STATUS_STYLES[key] ?? "bg-slate-100 text-slate-700"
+      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${
+        STATUS_STYLES[key] ?? "border-border bg-muted-soft text-foreground"
       }`}
     >
       {statusLabel(status)}

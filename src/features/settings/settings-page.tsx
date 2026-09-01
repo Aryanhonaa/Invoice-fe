@@ -23,7 +23,7 @@ export function SettingsPage() {
             : "Your account and current workspace."
         }
       />
-      <section className="rounded-[12px] border border-border bg-surface px-5 py-4">
+      <section className="rounded-2xl border border-border bg-surface px-5 py-4">
         <h2 className="text-sm font-semibold text-foreground">Account</h2>
         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
@@ -51,7 +51,7 @@ export function SettingsPage() {
         </dl>
       </section>
       {user.role === "SUPER_ADMIN" ? (
-        <section className="rounded-[12px] border border-border bg-surface px-5 py-4">
+        <section className="rounded-2xl border border-border bg-surface px-5 py-4">
           <h2 className="text-sm font-semibold text-foreground">Platform</h2>
           <p className="mt-2 text-sm text-muted">
             This is an internal company billing workspace. Teams and administrators are managed from

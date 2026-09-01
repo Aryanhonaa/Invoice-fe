@@ -341,7 +341,7 @@ export function InvoiceForm({
               {values.items.map((item, index) => (
                 <div
                   key={`item-${index}`}
-                  className="grid gap-3 rounded-[12px] border border-border p-4 md:grid-cols-12"
+                  className="grid gap-3 rounded-2xl border border-border p-4 md:grid-cols-12"
                 >
                   <div className="md:col-span-5">
                     <Field label="Description" htmlFor={`item-desc-${index}`} required>
@@ -515,7 +515,7 @@ export function InvoiceForm({
               ) : null}
             </FormSection>
           </Surface>
-          <aside className="rounded-[12px] border border-border bg-surface p-5 lg:sticky lg:top-6">
+          <aside className="rounded-2xl border border-border bg-surface p-5 lg:sticky lg:top-6">
             <h2 className="text-sm font-semibold text-foreground">Total</h2>
             <p className="mt-1 text-xs text-muted">The saved invoice uses server-calculated amounts.</p>
             <dl className="mt-4 space-y-3 text-sm">

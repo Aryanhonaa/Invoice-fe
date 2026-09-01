@@ -8,11 +8,11 @@ export const CHART_COLORS = {
   muted: "var(--chart-muted)",
   grid: "var(--chart-grid)",
   axis: "var(--chart-axis)",
-  paid: "#334155",
-  pending: "#64748b",
-  partial: "#94a3b8",
-  overdue: "#b45309",
-  cancelled: "#cbd5e1",
+  paid: "#141517",
+  pending: "#6b6d70",
+  partial: "#9a9b9d",
+  overdue: "#d41920",
+  cancelled: "#c8c9cb",
 };
 
 export const INVOICE_STATUS_COLORS: Record<string, string> = {

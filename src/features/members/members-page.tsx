@@ -159,7 +159,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
   }
 
   if (authLoading || !canManage) {
-    return <p className="text-sm text-slate-500">Checking access…</p>;
+    return <p className="text-sm text-muted">Checking access…</p>;
   }
 
   return (
@@ -177,7 +177,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
       )}
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -214,7 +214,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
       </form>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading members…</p>
+        <p className="text-sm text-muted">Loading members…</p>
       ) : error ? (
         <ErrorState title="We couldn't load members." message={error} onRetry={() => void load()} />
       ) : !result || result.items.length === 0 ? (
@@ -238,12 +238,12 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
             </THead>
             <tbody>
               {result.items.map((member) => (
-                <tr key={member.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={member.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <Link href={`/members/${member.id}`} className="font-medium hover:underline">
                       {member.firstName} {member.lastName}
                     </Link>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted">
                       {member.teams.length > 0
                         ? `${member.teams.length} team${member.teams.length === 1 ? "" : "s"}`
                         : "No teams"}
@@ -321,10 +321,10 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
 
       {generatedPassword ? (
         <Dialog title="Temporary password" onClose={() => setGeneratedPassword(null)}>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted">
             Share this password now. It is not stored in plain text and will not be shown again.
           </p>
-          <p className="mt-4 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm break-all">
+          <p className="mt-4 rounded-lg bg-muted-soft px-3 py-2 font-mono text-sm break-all">
             {generatedPassword}
           </p>
         </Dialog>

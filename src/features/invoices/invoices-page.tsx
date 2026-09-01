@@ -185,7 +185,7 @@ export function InvoicesPage() {
       </div>
 
       {filtersOpen ? (
-        <div className="grid gap-3 rounded-[12px] border border-border bg-surface p-4 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3 xl:grid-cols-6">
           <Field label="Status" htmlFor="invoice-status">
             <SelectInput
               id="invoice-status"

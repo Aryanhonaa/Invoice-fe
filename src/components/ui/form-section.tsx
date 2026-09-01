@@ -33,11 +33,11 @@ export function MoreOptions({
 
   return (
     <details
-      className="rounded-[12px] border border-border bg-surface p-4"
+      className="rounded-2xl border border-border bg-surface p-4"
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary className="cursor-pointer text-sm font-medium text-slate-800">{title}</summary>
+      <summary className="cursor-pointer text-sm font-medium text-foreground">{title}</summary>
       <div className="mt-4 space-y-4">{children}</div>
     </details>
   );
