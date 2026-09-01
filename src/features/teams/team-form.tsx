@@ -1,0 +1,114 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Field, SelectInput, TextInput } from "@/components/ui/field";
+import { teamFormSchema } from "@/schemas/team";
+import type { OrganizationSummary } from "@/types/admin";
+import type { TeamFormValues } from "@/types/team";
+
+interface TeamFormProps {
+  title: string;
+  mode: "create" | "edit";
+  requireOrganization: boolean;
+  organizations: OrganizationSummary[];
+  initialValues?: Partial<TeamFormValues>;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (values: TeamFormValues) => Promise<void>;
+}
+
+export function TeamForm({
+  title,
+  mode,
+  requireOrganization,
+  organizations,
+  initialValues,
+  busy,
+  onClose,
+  onSubmit,
+}: TeamFormProps) {
+  const [values, setValues] = useState<TeamFormValues>({
+    name: initialValues?.name ?? "",
+    description: initialValues?.description ?? "",
+    organizationId: initialValues?.organizationId ?? "",
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    const parsed = teamFormSchema.safeParse(values);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Check the form and try again.");
+      return;
+    }
+    if (requireOrganization && !values.organizationId) {
+      setError("Organization is required");
+      return;
+    }
+    setError(null);
+    await onSubmit(values);
+  }
+
+  return (
+    <Dialog
+      title={title}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="submit" form="team-form" disabled={busy}>
+            {busy ? "Saving…" : mode === "create" ? "Create team" : "Save changes"}
+          </Button>
+        </>
+      }
+    >
+      <form id="team-form" className="grid gap-4" onSubmit={(event) => void handleSubmit(event)}>
+        <Field label="Name" htmlFor="team-name" required>
+          <TextInput
+            id="team-name"
+            value={values.name}
+            onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
+            required
+          />
+        </Field>
+        <Field label="Description" htmlFor="team-description">
+          <TextInput
+            id="team-description"
+            value={values.description}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, description: event.target.value }))
+            }
+          />
+        </Field>
+        {requireOrganization ? (
+          <Field label="Organization" htmlFor="team-org" required>
+            <SelectInput
+              id="team-org"
+              value={values.organizationId}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, organizationId: event.target.value }))
+              }
+              required
+            >
+              <option value="">Select organization</option>
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>
+                  {organization.name}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+        ) : null}
+        {error ? (
+          <p className="text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </form>
+    </Dialog>
+  );
+}
