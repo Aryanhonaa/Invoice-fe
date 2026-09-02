@@ -35,6 +35,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     typeof window === "undefined" ? false : window.localStorage.getItem(SIDEBAR_KEY) === "1",
   );
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const groups = useMemo(() => {
     if (!user) {
       return [];
@@ -92,27 +94,79 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   function renderGroups(onNavigate?: () => void, compact = false) {
-    return groups.map((group) => (
-      <div key={group.id} className="space-y-0.5">
-        {group.label && !compact ? (
-          <p className="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
-            {group.label}
-          </p>
-        ) : compact ? (
-          <div className="mx-auto my-2 h-px w-6 bg-border" />
-        ) : null}
-        {group.items.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            pathname={pathname}
-            search={search}
-            compact={compact}
-            onNavigate={onNavigate}
-          />
-        ))}
-      </div>
-    ));
+    return groups.map((group) => {
+      if (group.collapsible && group.label) {
+        const childActive = group.items.some((item) => isNavItemActive(item, pathname, `?${search}`));
+        const open = settingsOpen && !compact;
+        return (
+          <div key={group.id} className="space-y-0.5">
+            <button
+              type="button"
+              title={compact ? group.label : undefined}
+              aria-expanded={open}
+              onClick={() => {
+                if (compact) {
+                  setCollapsed(false);
+                  window.localStorage.setItem(SIDEBAR_KEY, "0");
+                  setSettingsOpen(true);
+                  return;
+                }
+                setSettingsOpen((current) => !current);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-sm font-medium transition-colors",
+                compact && "justify-center px-2",
+                childActive || open
+                  ? "bg-sidebar-hover text-sidebar-foreground"
+                  : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
+              )}
+            >
+              <NavIconMark name="settings" />
+              {compact ? <span className="sr-only">{group.label}</span> : <span className="flex-1 text-left">{group.label}</span>}
+              {compact ? null : (
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className={cn("h-3.5 w-3.5 shrink-0 transition-transform", open && "rotate-180")}
+                  aria-hidden
+                >
+                  <path d="M4 6.5 8 10.5 12 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
+            {open
+              ? group.items.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    pathname={pathname}
+                    search={search}
+                    compact={false}
+                    nested
+                    onNavigate={onNavigate}
+                  />
+                ))
+              : null}
+          </div>
+        );
+      }
+
+      return (
+        <div key={group.id} className="space-y-0.5">
+          {compact ? <div className="mx-auto my-2 h-px w-6 bg-border" /> : null}
+          {group.items.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              pathname={pathname}
+              search={search}
+              compact={compact}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
+      );
+    });
   }
 
   const initials = user
@@ -137,9 +191,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-2" aria-label="Main">
           {renderGroups(undefined, collapsed)}
         </nav>
-        <div className="border-t border-sidebar-border p-2">
+        <div className="space-y-1 border-t border-sidebar-border p-2">
           <Button variant="sidebarGhost" size="sm" className="w-full" onClick={toggleCollapsed}>
             {collapsed ? "»" : "Collapse"}
+          </Button>
+          <Button variant="sidebarGhost" size="sm" className="w-full" onClick={() => void handleLogout()}>
+            Logout
           </Button>
         </div>
       </aside>
@@ -161,6 +218,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Mobile">
               {renderGroups(() => setNavOpen(false))}
             </nav>
+            <div className="border-t border-sidebar-border p-3">
+              <Button variant="sidebarGhost" size="sm" className="w-full" onClick={() => void handleLogout()}>
+                Logout
+              </Button>
+            </div>
           </aside>
         </div>
       ) : null}
@@ -234,12 +296,14 @@ function NavLink({
   pathname,
   search,
   compact,
+  nested = false,
   onNavigate,
 }: {
   item: NavItem;
   pathname: string;
   search: string;
   compact: boolean;
+  nested?: boolean;
   onNavigate?: () => void;
 }) {
   const active = isNavItemActive(item, pathname, `?${search}`);
@@ -251,6 +315,7 @@ function NavLink({
       className={cn(
         "flex items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-sm font-medium transition-colors",
         compact && "justify-center px-2",
+        nested && "pl-9",
         active ? "bg-primary text-primary-foreground" : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
       )}
     >
