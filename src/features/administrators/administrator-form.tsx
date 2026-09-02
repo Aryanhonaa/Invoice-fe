@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, TextInput } from "@/components/ui/field";
 import { createAdminFormSchema } from "@/schemas/admin";
+import { usePersistedFormState } from "@/hooks/use-persisted-form-state";
 import type { AdminFormValues, AdminUser } from "@/types/admin";
 
 interface AdministratorFormProps {
   title: string;
   initialValues?: Partial<AdminFormValues>;
   mode: "create" | "edit";
+  persistKey: string;
   busy: boolean;
   onClose: () => void;
   onSubmit: (values: AdminFormValues) => Promise<void>;
@@ -30,11 +32,12 @@ export function AdministratorForm({
   title,
   initialValues,
   mode,
+  persistKey,
   busy,
   onClose,
   onSubmit,
 }: AdministratorFormProps) {
-  const [values, setValues] = useState<AdminFormValues>({
+  const [values, setValues, clearDraft] = usePersistedFormState<AdminFormValues>(persistKey, {
     ...emptyValues,
     ...initialValues,
   });
@@ -64,6 +67,7 @@ export function AdministratorForm({
         ...values,
         ...parsed.data,
       } as AdminFormValues);
+      clearDraft();
       return;
     }
 
@@ -73,6 +77,7 @@ export function AdministratorForm({
     }
     setErrors({});
     await onSubmit(values);
+    clearDraft();
   }
 
   return (

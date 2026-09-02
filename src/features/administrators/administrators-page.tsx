@@ -342,6 +342,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         <AdministratorForm
           title="Add administrator"
           mode="create"
+          persistKey="admin-form:create"
           busy={formBusy}
           onClose={() => setFormMode(null)}
           onSubmit={handleCreate}
@@ -352,6 +353,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         <AdministratorForm
           title="Edit administrator"
           mode="edit"
+          persistKey={`admin-form:edit:${editing.id}`}
           initialValues={valuesFromAdmin(editing)}
           busy={formBusy}
           onClose={() => {

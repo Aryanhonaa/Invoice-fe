@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, PasswordInput, TextInput } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { ROLE_LABELS } from "@/config/navigation";
+import { usePersistedFormState } from "@/hooks/use-persisted-form-state";
 import { ApiError } from "@/lib/api/types";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
@@ -14,14 +15,43 @@ export function AccountSettingsPage() {
   const { user, refresh } = useAuth();
   const { notify } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [firstName, setFirstName] = useState(user?.firstName ?? "");
-  const [lastName, setLastName] = useState(user?.lastName ?? "");
+  const [firstName, setFirstName, clearFirstNameDraft] = usePersistedFormState(
+    "settings:account:first-name",
+    "",
+  );
+  const [lastName, setLastName, clearLastNameDraft] = usePersistedFormState(
+    "settings:account:last-name",
+    "",
+  );
+  const [currentPassword, setCurrentPassword, clearCurrentPasswordDraft] = usePersistedFormState(
+    "settings:account:current-password",
+    "",
+  );
+  const [newPassword, setNewPassword, clearNewPasswordDraft] = usePersistedFormState(
+    "settings:account:new-password",
+    "",
+  );
+  const [confirmPassword, setConfirmPassword, clearConfirmPasswordDraft] = usePersistedFormState(
+    "settings:account:confirm-password",
+    "",
+  );
   const [savingProfile, setSavingProfile] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    setFirstName((current) => current || user.firstName);
+    setLastName((current) => current || user.lastName);
+  }, [setFirstName, setLastName, user]);
+
+  function clearPasswordDrafts() {
+    clearCurrentPasswordDraft();
+    clearNewPasswordDraft();
+    clearConfirmPasswordDraft();
+  }
 
   if (!user) {
     return <p className="text-sm text-muted">Loading account…</p>;
@@ -33,6 +63,8 @@ export function AccountSettingsPage() {
     try {
       await updateProfile({ firstName, lastName });
       await refresh();
+      clearFirstNameDraft();
+      clearLastNameDraft();
       notify("Profile saved");
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to save profile.", "error");
@@ -85,6 +117,7 @@ export function AccountSettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      clearPasswordDrafts();
       notify("Password changed");
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to change password.", "error");

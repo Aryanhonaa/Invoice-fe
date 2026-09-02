@@ -10,6 +10,7 @@ import { Stepper } from "@/components/ui/stepper";
 import { CustomerForm } from "@/features/customers/customer-form";
 import { InvoiceCustomerPicker } from "@/features/invoices/invoice-customer-picker";
 import { InvoiceItemsSection } from "@/features/invoices/invoice-items-section";
+import { clearFormDrafts, usePersistedFormState } from "@/hooks/use-persisted-form-state";
 import { calculateInvoiceTotals, calculateLineAmount, formatMoney } from "@/lib/invoice-calc";
 import { ApiError } from "@/lib/api/types";
 import { invoiceFormSchema } from "@/schemas/invoice";
@@ -21,6 +22,7 @@ import type { MemberUser } from "@/types/member";
 
 interface InvoiceFormProps {
   mode: "create" | "edit";
+  persistKey: string;
   customers: Customer[];
   products: Product[];
   members: MemberUser[];
@@ -58,6 +60,7 @@ function inDays(days: number): string {
 
 export function InvoiceForm({
   mode,
+  persistKey,
   customers,
   products,
   members,
@@ -69,13 +72,7 @@ export function InvoiceForm({
   onSubmit,
 }: InvoiceFormProps) {
   const { notify } = useToast();
-  const [step, setStep] = useState(0);
-  const [highestReached, setHighestReached] = useState(0);
-  const [addedCustomers, setAddedCustomers] = useState<Customer[]>([]);
-  const [pickedCustomer, setPickedCustomer] = useState<Customer | null>(null);
-  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
-  const [customerBusy, setCustomerBusy] = useState(false);
-  const [values, setValues] = useState<InvoiceFormValues>({
+  const defaultValues: InvoiceFormValues = {
     customerId: initialValues?.customerId ?? "",
     organizationId: initialValues?.organizationId ?? "",
     invoiceNumber: initialValues?.invoiceNumber ?? "",
@@ -86,9 +83,24 @@ export function InvoiceForm({
     terms: initialValues?.terms ?? "Payment due within 14 days.",
     assignedMemberId: initialValues?.assignedMemberId ?? "",
     items: initialValues?.items?.length ? initialValues.items : [{ ...emptyItem }],
-  });
+  };
+  const [step, setStep] = usePersistedFormState(`${persistKey}:step`, 0);
+  const [highestReached, setHighestReached] = usePersistedFormState(`${persistKey}:highest`, 0);
+  const [values, setValues] = usePersistedFormState(`${persistKey}:values`, defaultValues);
+  const [addedCustomers, setAddedCustomers] = useState<Customer[]>([]);
+  const [pickedCustomer, setPickedCustomer] = useState<Customer | null>(null);
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [customerBusy, setCustomerBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  function clearDrafts() {
+    clearFormDrafts([
+      `${persistKey}:step`,
+      `${persistKey}:highest`,
+      `${persistKey}:values`,
+    ]);
+  }
 
   const customerList = useMemo(() => {
     const ids = new Set(customers.map((customer) => customer.id));
@@ -210,6 +222,7 @@ export function InvoiceForm({
     }
     setFormError(null);
     await onSubmit(values);
+    clearDrafts();
   }
 
   async function handleCreateCustomer(formValues: CustomerFormValues) {
@@ -506,6 +519,7 @@ export function InvoiceForm({
         <CustomerForm
           title="Add customer"
           mode="create"
+          persistKey="customer-form:invoice-quick-add"
           busy={customerBusy}
           onClose={() => setAddCustomerOpen(false)}
           onSubmit={handleCreateCustomer}

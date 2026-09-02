@@ -251,6 +251,7 @@ export function CustomersPage() {
         <CustomerForm
           title="Add customer"
           mode="create"
+          persistKey="customer-form:create"
           initialValues={{ organizationId: organizationId ?? "" }}
           busy={formBusy}
           onClose={() => setFormMode(null)}
@@ -262,6 +263,7 @@ export function CustomersPage() {
         <CustomerForm
           title="Edit customer"
           mode="edit"
+          persistKey={`customer-form:edit:${editing.id}`}
           initialValues={valuesFromCustomer(editing)}
           busy={formBusy}
           onClose={() => {

@@ -167,6 +167,7 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
         <MemberForm
           title="Edit member"
           mode="edit"
+          persistKey={`member-form:edit:${member.id}`}
           initialValues={valuesFromMember(member)}
           busy={formBusy}
           onClose={() => setEditing(false)}

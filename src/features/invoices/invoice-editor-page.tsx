@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { InvoiceForm, valuesFromInvoice } from "@/features/invoices/invoice-form";
@@ -39,9 +39,12 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [members, setMembers] = useState<MemberUser[]>([]);
   const [initialValues, setInitialValues] = useState<Partial<InvoiceFormValues> | undefined>();
+  const hasLoadedRef = useRef(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedRef.current) {
+      setLoading(true);
+    }
     setError(null);
     try {
       if (!invoiceId && !canCreate) {
@@ -84,8 +87,11 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
       setError(err instanceof ApiError ? err.message : "We couldn't load the invoice form.");
     } finally {
       setLoading(false);
+      hasLoadedRef.current = true;
     }
   }, [canCreate, canListOrgMembers, canUpdate, invoiceId, user]);
+
+  const persistKey = `invoice-form:${invoiceId ?? "new"}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -134,7 +140,7 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
           }
         />
       </div>
-      {loading ? (
+      {loading && !hasLoadedRef.current ? (
         <TableSkeleton cols={3} rows={4} />
       ) : error && !initialValues && invoiceId ? (
         <div role="alert" className="rounded-2xl border border-border bg-primary-soft p-6 text-sm text-primary">
@@ -143,6 +149,7 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
       ) : (
         <InvoiceForm
           mode={invoiceId ? "edit" : "create"}
+          persistKey={persistKey}
           customers={customers}
           products={products}
           members={members}

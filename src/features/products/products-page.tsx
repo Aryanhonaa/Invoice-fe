@@ -268,6 +268,7 @@ export function ProductsPage() {
         <ProductForm
           title="Add product"
           mode="create"
+          persistKey="product-form:create"
           initialValues={{ organizationId: organizationId ?? "" }}
           busy={formBusy}
           onClose={() => setFormMode(null)}
@@ -279,6 +280,7 @@ export function ProductsPage() {
         <ProductForm
           title="Edit product"
           mode="edit"
+          persistKey={`product-form:edit:${editing.id}`}
           initialValues={valuesFromProduct(editing)}
           busy={formBusy}
           onClose={() => {

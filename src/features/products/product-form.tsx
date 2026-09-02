@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/field";
 import { productFormSchema } from "@/schemas/catalog";
+import { usePersistedFormState } from "@/hooks/use-persisted-form-state";
 import type { Product, ProductFormValues } from "@/types/catalog";
 
 interface ProductFormProps {
   title: string;
   mode: "create" | "edit";
+  persistKey: string;
   initialValues?: Partial<ProductFormValues>;
   busy: boolean;
   onClose: () => void;
@@ -32,12 +34,13 @@ const emptyValues: ProductFormValues = {
 export function ProductForm({
   title,
   mode,
+  persistKey,
   initialValues,
   busy,
   onClose,
   onSubmit,
 }: ProductFormProps) {
-  const [values, setValues] = useState<ProductFormValues>({
+  const [values, setValues, clearDraft] = usePersistedFormState<ProductFormValues>(persistKey, {
     ...emptyValues,
     ...initialValues,
   });
@@ -56,6 +59,7 @@ export function ProductForm({
     }
     setError(null);
     await onSubmit(values);
+    clearDraft();
   }
 
   return (

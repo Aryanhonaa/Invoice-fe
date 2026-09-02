@@ -136,6 +136,7 @@ export function CustomerDetailPage({ customerId }: CustomerDetailPageProps) {
         <CustomerForm
           title="Edit customer"
           mode="edit"
+          persistKey={`customer-form:edit:${customer.id}`}
           initialValues={valuesFromCustomer(customer)}
           busy={formBusy}
           onClose={() => setEditing(false)}

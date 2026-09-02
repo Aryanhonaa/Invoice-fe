@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, PasswordInput, SelectInput, TextInput } from "@/components/ui/field";
 import { memberFormSchema } from "@/schemas/member";
+import { usePersistedFormState } from "@/hooks/use-persisted-form-state";
 import type { MemberFormValues, MemberUser } from "@/types/member";
 
 interface MemberFormProps {
   title: string;
   mode: "create" | "edit";
+  persistKey: string;
   initialValues?: Partial<MemberFormValues>;
   busy: boolean;
   onClose: () => void;
@@ -28,12 +30,13 @@ const emptyValues: MemberFormValues = {
 export function MemberForm({
   title,
   mode,
+  persistKey,
   initialValues,
   busy,
   onClose,
   onSubmit,
 }: MemberFormProps) {
-  const [values, setValues] = useState<MemberFormValues>({
+  const [values, setValues, clearDraft] = usePersistedFormState<MemberFormValues>(persistKey, {
     ...emptyValues,
     ...initialValues,
   });
@@ -62,6 +65,7 @@ export function MemberForm({
       ...parsed.data,
       organizationId: values.organizationId,
     });
+    clearDraft();
   }
 
   return (

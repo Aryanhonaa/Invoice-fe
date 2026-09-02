@@ -367,6 +367,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         <MemberForm
           title="Add member"
           mode="create"
+          persistKey="member-form:create"
           initialValues={{ organizationId: organizationId ?? "" }}
           busy={formBusy}
           onClose={() => setFormMode(null)}
@@ -378,6 +379,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         <MemberForm
           title="Edit member"
           mode="edit"
+          persistKey={`member-form:edit:${editing.id}`}
           initialValues={valuesFromMember(editing)}
           busy={formBusy}
           onClose={() => {

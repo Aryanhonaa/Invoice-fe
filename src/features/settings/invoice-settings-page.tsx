@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextInput } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
+import {
+  getFormDraft,
+  usePersistedFormState,
+} from "@/hooks/use-persisted-form-state";
 import { ApiError } from "@/lib/api/types";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
@@ -21,12 +25,17 @@ const LANGUAGES = [
   { value: "ne", label: "Nepali" },
 ];
 
+const SETTINGS_DRAFT_KEY = "settings:invoice";
+
 export function InvoiceSettingsPage() {
   const { user } = useAuth();
   const { notify } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canManageLogo = user?.role === "SUPER_ADMIN";
-  const [settings, setSettings] = useState<InvoiceSettings | null>(null);
+  const [settings, setSettings, clearSettingsDraft] = usePersistedFormState<InvoiceSettings | null>(
+    SETTINGS_DRAFT_KEY,
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
@@ -36,7 +45,9 @@ export function InvoiceSettingsPage() {
     setLoading(true);
     setError(null);
     try {
-      setSettings(await getInvoiceSettings());
+      const data = await getInvoiceSettings();
+      const draft = getFormDraft<InvoiceSettings>(SETTINGS_DRAFT_KEY);
+      setSettings(draft ?? data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load invoice settings.");
     } finally {
@@ -61,6 +72,7 @@ export function InvoiceSettingsPage() {
         address: settings.address,
       });
       setSettings(saved);
+      clearSettingsDraft();
       notify("Invoice settings saved");
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to save invoice settings.", "error");

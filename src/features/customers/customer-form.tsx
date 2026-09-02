@@ -6,11 +6,13 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/field";
 import { MoreOptions } from "@/components/ui/form-section";
 import { customerFormSchema } from "@/schemas/catalog";
+import { usePersistedFormState } from "@/hooks/use-persisted-form-state";
 import type { Address, AddressFormValues, Customer, CustomerFormValues } from "@/types/catalog";
 
 interface CustomerFormProps {
   title: string;
   mode: "create" | "edit";
+  persistKey: string;
   initialValues?: Partial<CustomerFormValues>;
   busy: boolean;
   onClose: () => void;
@@ -42,12 +44,13 @@ const emptyValues: CustomerFormValues = {
 export function CustomerForm({
   title,
   mode,
+  persistKey,
   initialValues,
   busy,
   onClose,
   onSubmit,
 }: CustomerFormProps) {
-  const [values, setValues] = useState<CustomerFormValues>({
+  const [values, setValues, clearDraft] = usePersistedFormState<CustomerFormValues>(persistKey, {
     ...emptyValues,
     ...initialValues,
     billingAddress: { ...emptyAddress, ...initialValues?.billingAddress },
@@ -79,6 +82,7 @@ export function CustomerForm({
     }
     setError(null);
     await onSubmit(values);
+    clearDraft();
   }
 
   return (
