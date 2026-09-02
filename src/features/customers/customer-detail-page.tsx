@@ -114,8 +114,8 @@ export function CustomerDetailPage({ customerId }: CustomerDetailPageProps) {
           <p className="mt-1 text-sm text-muted">{customer.company || "No company"}</p>
         </div>
         <ActionGroup>
-          {canUpdate ? <EditAction size="md" onClick={() => setEditing(true)} /> : null}
-          {canDelete ? <DeleteAction size="md" onClick={() => setDeleteOpen(true)} /> : null}
+          {canUpdate ? <EditAction onClick={() => setEditing(true)} /> : null}
+          {canDelete ? <DeleteAction onClick={() => setDeleteOpen(true)} /> : null}
         </ActionGroup>
       </div>
 

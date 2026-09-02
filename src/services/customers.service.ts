@@ -4,6 +4,7 @@ import type {
   AddressFormValues,
   Customer,
   CustomerFormValues,
+  CustomerInvoiceLifecycle,
   CustomerListResult,
 } from "@/types/catalog";
 import type { CatalogStatus } from "@/types/catalog";
@@ -44,6 +45,7 @@ export async function listCustomers(query: {
   search?: string;
   status?: CatalogStatus | "";
   organizationId?: string;
+  invoiceLifecycle?: CustomerInvoiceLifecycle | "";
   page?: number;
   pageSize?: number;
 }): Promise<CustomerListResult> {
@@ -51,6 +53,7 @@ export async function listCustomers(query: {
   if (query.search) params.set("search", query.search);
   if (query.status) params.set("status", query.status);
   if (query.organizationId) params.set("organizationId", query.organizationId);
+  if (query.invoiceLifecycle) params.set("invoiceLifecycle", query.invoiceLifecycle);
   params.set("page", String(query.page ?? 1));
   params.set("pageSize", String(query.pageSize ?? 10));
   return customerListResultSchema.parse(

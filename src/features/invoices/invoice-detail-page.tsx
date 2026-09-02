@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ActionGroup, CancelAction, CopyLinkAction, DeleteAction, EditAction } from "@/components/ui/action-buttons";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/skeleton";
@@ -21,8 +21,10 @@ import {
   deleteInvoice,
   downloadInvoicePdf,
   getInvoice,
+  getInvoiceShareLink,
   sendInvoice,
 } from "@/services/invoices.service";
+import { copyText } from "@/lib/copy-text";
 import type { Invoice } from "@/types/invoice";
 
 interface InvoiceDetailPageProps {
@@ -98,18 +100,6 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
     );
   }
 
-  const moreActions = [
-    ...(canUpdate && invoice.status === "DRAFT"
-      ? [{ label: "Edit", onClick: () => router.push(`/invoices/${invoice.id}/edit`) }]
-      : []),
-    ...(canUpdate && ["DRAFT", "SENT", "VIEWED", "OVERDUE"].includes(invoice.status)
-      ? [{ label: "Cancel invoice", onClick: () => setCancelOpen(true), danger: true }]
-      : []),
-    ...(canDelete && invoice.status === "DRAFT"
-      ? [{ label: "Delete", onClick: () => setDeleteOpen(true), danger: true }]
-      : []),
-  ];
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -118,12 +108,22 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
         actions={
           <>
             <StatusBadge status={invoice.status} />
-            {canSend && invoice.status === "DRAFT" ? (
+            <StatusBadge status={invoice.emailStatus} />
+            <CopyLinkAction
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  const url = await getInvoiceShareLink(invoice.id);
+                  await copyText(url);
+                }, "Invoice link copied")
+              }
+            />
+            {canSend && invoice.status !== "CANCELLED" ? (
               <Button
-                onClick={() => void run(() => sendInvoice(invoice.id), "Invoice sent successfully.")}
+                onClick={() => void run(() => sendInvoice(invoice.id), "Invoice sent successfully")}
                 disabled={busy}
               >
-                {busy ? "Sending…" : "Send invoice"}
+                {busy ? "Sending…" : invoice.emailStatus === "FAILED" ? "Retry email" : invoice.emailStatus === "SENT" ? "Resend email" : "Send invoice"}
               </Button>
             ) : null}
             {canPay && ["SENT", "VIEWED", "OVERDUE", "PARTIALLY_PAID"].includes(invoice.status) ? (
@@ -140,18 +140,45 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
             >
               Download PDF
             </Button>
-            {moreActions.length > 0 ? <DropdownMenu items={moreActions} /> : null}
+            <ActionGroup>
+              {canUpdate && invoice.status === "DRAFT" ? (
+                <EditAction onClick={() => router.push(`/invoices/${invoice.id}/edit`)} disabled={busy} />
+              ) : null}
+              {canUpdate && ["DRAFT", "SENT", "VIEWED", "OVERDUE"].includes(invoice.status) ? (
+                <CancelAction
+                  label="Cancel invoice"
+                  onClick={() => setCancelOpen(true)}
+                  disabled={busy}
+                />
+              ) : null}
+              {canDelete && invoice.status === "DRAFT" ? (
+                <DeleteAction onClick={() => setDeleteOpen(true)} disabled={busy} />
+              ) : null}
+            </ActionGroup>
           </>
         }
       />
-      <p className="text-sm text-muted">
-        <Link href="/invoices" className="hover:underline">
-          Back to invoices
-        </Link>
-      </p>
+      <Link href="/invoices" className="inline-block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+        ← Back to invoices
+      </Link>
 
       <section className="grid gap-4 rounded-2xl border border-border bg-surface p-6 md:grid-cols-2">
         <div>
+          {(invoice.organization?.logoUrl || invoice.organization?.name) && (
+            <div className="mb-4">
+              {invoice.organization?.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={invoice.organization.logoUrl}
+                  alt={invoice.organization.name}
+                  className="mb-2 h-10 w-auto max-w-[160px] object-contain"
+                />
+              ) : null}
+              {invoice.organization?.name ? (
+                <p className="text-sm font-medium text-foreground">{invoice.organization.name}</p>
+              ) : null}
+            </div>
+          )}
           <h2 className="text-sm font-semibold text-foreground">Customer</h2>
           <p className="mt-2 text-sm font-medium text-foreground">{invoice.customer.name}</p>
           {invoice.customer.company ? (
@@ -170,7 +197,7 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
             value={
               invoice.assignedMember
                 ? `${invoice.assignedMember.firstName} ${invoice.assignedMember.lastName}`
-                : invoice.assignedTeam?.name
+                : "—"
             }
           />
         </div>
@@ -181,12 +208,10 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
         <table className="min-w-full text-left text-sm">
           <thead className="bg-muted-soft text-xs uppercase tracking-wide text-muted">
             <tr>
-              <th className="px-4 py-3 font-medium">Item</th>
-              <th className="px-4 py-3 font-medium">Qty</th>
-              <th className="px-4 py-3 font-medium">Price</th>
-              <th className="px-4 py-3 font-medium">Discount</th>
-              <th className="px-4 py-3 font-medium">Tax</th>
-              <th className="px-4 py-3 font-medium">Total</th>
+              <th className="px-4 py-3 font-medium">Description</th>
+              <th className="px-4 py-3 font-medium text-right">Qty</th>
+              <th className="px-4 py-3 font-medium text-right">Unit Price</th>
+              <th className="px-4 py-3 font-medium text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -198,17 +223,11 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
                     {[item.sku, item.unit, item.catalogKind].filter(Boolean).join(" · ")}
                   </p>
                 </td>
-                <td className="px-4 py-3 text-muted">{item.quantity}</td>
-                <td className="px-4 py-3 text-muted">
+                <td className="px-4 py-3 text-right text-muted">{item.quantity}</td>
+                <td className="px-4 py-3 text-right text-muted">
                   {formatMoney(item.unitPrice, invoice.currency)}
                 </td>
-                <td className="px-4 py-3 text-muted">
-                  {formatMoney(item.discount, invoice.currency)}
-                </td>
-                <td className="px-4 py-3 text-muted">
-                  {formatMoney(item.taxAmount, invoice.currency)}
-                </td>
-                <td className="px-4 py-3 text-muted">
+                <td className="px-4 py-3 text-right text-muted">
                   {formatMoney(item.lineTotal, invoice.currency)}
                 </td>
               </tr>
@@ -218,8 +237,6 @@ export function InvoiceDetailPage({ invoiceId }: InvoiceDetailPageProps) {
         </div>
         <div className="grid gap-2 border-t border-border px-4 py-4 text-sm md:ml-auto md:w-80">
           <Row label="Subtotal" value={formatMoney(invoice.subtotal, invoice.currency)} />
-          <Row label="Discount" value={formatMoney(invoice.discountAmount, invoice.currency)} />
-          <Row label="Tax" value={formatMoney(invoice.taxAmount, invoice.currency)} />
           <Row label="Total" value={formatMoney(invoice.total, invoice.currency)} strong />
           <Row label="Paid" value={formatMoney(invoice.amountPaid, invoice.currency)} />
           <Row label="Balance due" value={formatMoney(invoice.balanceDue, invoice.currency)} />

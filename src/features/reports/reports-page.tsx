@@ -17,6 +17,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { createExpense } from "@/services/expenses.service";
+import { listMembers } from "@/services/members.service";
 import { downloadReportCsv, getReport } from "@/services/reports.service";
 import {
   DATE_PRESETS,
@@ -27,12 +28,13 @@ import {
   type Report,
   type ReportKind,
 } from "@/types/report";
+import type { MemberUser } from "@/types/member";
 
 const REPORT_KIND_VALUES = new Set<string>(REPORT_KINDS);
 
 export function ReportsPage() {
   const { user } = useAuth();
-  const { organizationId, teamId, scopeLabel } = useWorkspace();
+  const { organizationId, scopeLabel } = useWorkspace();
   const requestIdRef = useRef(0);
   const { notify } = useToast();
   const router = useRouter();
@@ -40,9 +42,12 @@ export function ReportsPage() {
   const requestedKind = searchParams.get("kind");
   const kind: ReportKind =
     requestedKind && REPORT_KIND_VALUES.has(requestedKind) ? (requestedKind as ReportKind) : "summary";
+  const canFilterMembers = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const [preset, setPreset] = useState<DatePreset>("this_month");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [memberId, setMemberId] = useState("");
+  const [members, setMembers] = useState<MemberUser[]>([]);
   const [page, setPage] = useState(1);
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +66,33 @@ export function ReportsPage() {
     setPage(1);
   }
 
+  useEffect(() => {
+    if (!canFilterMembers) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    void listMembers({
+      status: "ACTIVE",
+      organizationId: organizationId || undefined,
+      page: 1,
+      pageSize: 100,
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setMembers(result.items);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMembers([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canFilterMembers, organizationId]);
+
   const load = useCallback(async () => {
     if (preset === "custom" && (!dateFrom || !dateTo)) {
       return;
@@ -71,7 +103,7 @@ export function ReportsPage() {
       dateFrom: preset === "custom" ? dateFrom : undefined,
       dateTo: preset === "custom" ? dateTo : undefined,
       organizationId: organizationId || undefined,
-      teamId: teamId || undefined,
+      memberId: canFilterMembers && memberId ? memberId : undefined,
       page,
     };
     const requestId = ++requestIdRef.current;
@@ -93,7 +125,7 @@ export function ReportsPage() {
         setLoading(false);
       }
     }
-  }, [dateFrom, dateTo, kind, organizationId, page, preset, teamId]);
+  }, [canFilterMembers, dateFrom, dateTo, kind, memberId, organizationId, page, preset]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +142,10 @@ export function ReportsPage() {
 
   const canRecordExpense = hasPermission(user, "EXPENSES_CREATE");
   const currency = report?.currency ?? "USD";
+  const selectedMember = members.find((member) => member.id === memberId);
+  const selectedMemberLabel = selectedMember
+    ? `${selectedMember.firstName} ${selectedMember.lastName}`
+    : "All members";
 
   return (
     <div className="space-y-6">
@@ -118,7 +154,9 @@ export function ReportsPage() {
         description={
           kind === "expenses"
             ? `Track expenses for the selected period. ${scopeLabel}.`
-            : `Financial reports for your authorized scope. ${scopeLabel}.`
+            : canFilterMembers
+              ? `Financial reports for ${selectedMemberLabel.toLowerCase()}. ${scopeLabel}.`
+              : `Financial reports for your authorized scope. ${scopeLabel}.`
         }
         actions={
           <>
@@ -134,7 +172,7 @@ export function ReportsPage() {
                   dateFrom: preset === "custom" ? dateFrom : undefined,
                   dateTo: preset === "custom" ? dateTo : undefined,
                   organizationId: organizationId || undefined,
-                  teamId: teamId || undefined,
+                  memberId: canFilterMembers && memberId ? memberId : undefined,
                   page,
                 }).catch((err) =>
                   notify(err instanceof ApiError ? err.message : "Export failed.", "error"),
@@ -171,6 +209,25 @@ export function ReportsPage() {
             ))}
           </SelectInput>
         </Field>
+        {canFilterMembers ? (
+          <Field label="Select Member" htmlFor="report-member">
+            <SelectInput
+              id="report-member"
+              value={memberId}
+              onChange={(event) => {
+                setMemberId(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All Members</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.firstName} {member.lastName}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+        ) : null}
         <Field label="Date range" htmlFor="report-preset">
           <SelectInput
             id="report-preset"

@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 export function ActionGroup({ children }: { children: ReactNode }) {
-  return <div className="inline-flex flex-wrap items-center gap-1.5">{children}</div>;
+  return <div className="inline-flex flex-wrap items-center justify-end gap-2">{children}</div>;
 }
 
 function PencilIcon() {
@@ -18,11 +18,15 @@ function PencilIcon() {
   );
 }
 
-function BanIcon() {
+function PowerIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
-      <circle cx="8" cy="8" r="5.4" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M4.2 4.2 11.8 11.8" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M8 1.8v4.2M11.8 3.4A5.2 5.2 0 1 1 4.2 3.4"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -55,55 +59,210 @@ function TrashIcon() {
   );
 }
 
-export function EditAction({
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+      <path
+        d="M1.5 8s2.2-4 6.5-4 6.5 4 6.5 4-2.2 4-6.5 4-6.5-4-6.5-4Z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+      <circle cx="8" cy="8" r="1.8" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+      <path d="M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+type MemberActionProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  loading?: boolean;
+  tone: "view" | "edit" | "deactivate" | "activate" | "delete";
+};
+
+function MemberActionButton({ className, loading, disabled, tone, children, ...props }: MemberActionProps) {
+  return (
+    <button
+      type="button"
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={cn("member-action-btn", tone, className)}
+      {...props}
+    >
+      {loading ? (
+        <>
+          <span
+            className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+            aria-hidden
+          />
+          {children}
+        </>
+      ) : (
+        children
+      )}
+    </button>
+  );
+}
+
+function LinkIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+      <path
+        d="M6.7 9.3a3.2 3.2 0 0 0 4.5 0l1.3-1.3a3.2 3.2 0 0 0-4.5-4.5L7.2 4.3M9.3 6.7a3.2 3.2 0 0 0-4.5 0L3.5 8a3.2 3.2 0 0 0 4.5 4.5l.8-.8"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+      <rect x="2" y="3.5" width="12" height="9" rx="1.4" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M3 5.2 8 9l5-3.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function CopyLinkAction({
   onClick,
   disabled,
-  size = "sm",
+  loading,
 }: {
   onClick?: () => void;
   disabled?: boolean;
-  size?: "sm" | "md";
+  loading?: boolean;
 }) {
   return (
-    <Button variant="edit" size={size} onClick={onClick} disabled={disabled}>
-      <PencilIcon />
-      Edit
-    </Button>
+    <MemberActionButton tone="view" onClick={onClick} disabled={disabled} loading={loading} title="Copy invoice link">
+      <LinkIcon />
+      Copy Link
+    </MemberActionButton>
   );
+}
+
+export function SendEmailAction({
+  onClick,
+  disabled,
+  loading,
+  label = "Send Email",
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  label?: string;
+}) {
+  return (
+    <MemberActionButton
+      tone={label === "Retry" ? "deactivate" : "edit"}
+      onClick={onClick}
+      disabled={disabled}
+      loading={loading}
+      title={label}
+    >
+      <MailIcon />
+      {label}
+    </MemberActionButton>
+  );
+}
+
+export function EditAction({
+  onClick,
+  disabled,
+  loading,
+  mode = "edit",
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  mode?: "edit" | "view";
+}) {
+  return (
+    <MemberActionButton
+      tone={mode}
+      onClick={onClick}
+      disabled={disabled}
+      loading={loading}
+    >
+      {mode === "view" ? <EyeIcon /> : <PencilIcon />}
+      {mode === "view" ? "View" : "Edit"}
+    </MemberActionButton>
+  );
+}
+
+/** @deprecated Use EditAction with mode="view" */
+export function ViewAction(props: {
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  return <EditAction mode="view" {...props} />;
 }
 
 export function StatusAction({
   active,
   onClick,
   disabled,
-  size = "sm",
+  loading,
 }: {
   active: boolean;
   onClick?: () => void;
   disabled?: boolean;
-  size?: "sm" | "md";
+  loading?: boolean;
 }) {
   return (
-    <Button variant={active ? "warning" : "success"} size={size} onClick={onClick} disabled={disabled}>
-      {active ? <BanIcon /> : <CheckIcon />}
+    <MemberActionButton
+      tone={active ? "deactivate" : "activate"}
+      onClick={onClick}
+      disabled={disabled}
+      loading={loading}
+    >
+      {active ? <PowerIcon /> : <CheckIcon />}
       {active ? "Deactivate" : "Activate"}
-    </Button>
+    </MemberActionButton>
+  );
+}
+
+export function CancelAction({
+  onClick,
+  disabled,
+  loading,
+  label = "Cancel",
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  label?: string;
+}) {
+  return (
+    <MemberActionButton tone="deactivate" onClick={onClick} disabled={disabled} loading={loading}>
+      <XIcon />
+      {label}
+    </MemberActionButton>
   );
 }
 
 export function DeleteAction({
   onClick,
   disabled,
-  size = "sm",
+  loading,
 }: {
   onClick?: () => void;
   disabled?: boolean;
-  size?: "sm" | "md";
+  loading?: boolean;
 }) {
   return (
-    <Button variant="dangerSoft" size={size} onClick={onClick} disabled={disabled}>
+    <MemberActionButton tone="delete" onClick={onClick} disabled={disabled} loading={loading}>
       <TrashIcon />
       Delete
-    </Button>
+    </MemberActionButton>
   );
 }

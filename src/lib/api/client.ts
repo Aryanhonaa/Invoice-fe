@@ -32,7 +32,7 @@ export async function apiRequest<T>(
   const url = `${getApiBaseUrl()}${path}`;
   const headers = new Headers(options.headers);
 
-  if (!headers.has("Content-Type") && options.body) {
+  if (!headers.has("Content-Type") && options.body && !isBinaryBody(options.body)) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -55,6 +55,10 @@ export async function apiRequest<T>(
   }
 
   return parseApiResponse<T>(response.status, body);
+}
+
+function isBinaryBody(body: BodyInit): boolean {
+  return body instanceof FormData || body instanceof Blob || body instanceof ArrayBuffer;
 }
 
 function isApiResponse<T>(value: unknown): value is ApiResponse<T> {

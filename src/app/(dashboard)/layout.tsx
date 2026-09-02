@@ -2,6 +2,7 @@
 
 import { Suspense, type ReactNode } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import { AdminGuard } from "@/components/layout/admin-guard";
 import { SuperAdminGuard } from "@/components/layout/super-admin-guard";
 import { useRequireAuth } from "@/providers/auth-provider";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
@@ -31,7 +32,9 @@ export default function DashboardLayout({
     >
       <WorkspaceProvider>
         <SuperAdminGuard>
-          <AppShell>{children}</AppShell>
+          <AdminGuard>
+            <AppShell>{children}</AppShell>
+          </AdminGuard>
         </SuperAdminGuard>
       </WorkspaceProvider>
     </Suspense>

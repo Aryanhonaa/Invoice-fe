@@ -7,6 +7,7 @@ export interface PublicUser {
   firstName: string;
   lastName: string;
   phone: string | null;
+  avatarUrl?: string | null;
   role: UserRole;
   status: AccountStatus;
   organizationId: string | null;

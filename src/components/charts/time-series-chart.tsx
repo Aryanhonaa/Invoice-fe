@@ -32,6 +32,7 @@ interface TimeSeriesChartProps {
   points: TimeSeriesPoint[];
   currency: string;
   variant?: "line" | "bar";
+  valueKind?: "money" | "count";
   emptyMessage: string;
   loading?: boolean;
   error?: string | null;
@@ -43,6 +44,7 @@ export function TimeSeriesChart({
   points,
   currency,
   variant = "line",
+  valueKind = "money",
   emptyMessage,
   loading,
   error,
@@ -50,9 +52,12 @@ export function TimeSeriesChart({
   const data = points.map((point) => ({
     period: point.period,
     label: formatPeriodLabel(point.period),
-    value: toPlotNumber(point.amount),
+    value: valueKind === "count" ? Number(point.amount) : toPlotNumber(point.amount),
     amount: point.amount,
   }));
+
+  const formatValue = (value: number) =>
+    valueKind === "count" ? String(value) : formatPlotMoney(value, currency);
 
   const Chart = variant === "bar" ? BarChart : LineChart;
 
@@ -80,11 +85,11 @@ export function TimeSeriesChart({
             tickLine={false}
             axisLine={false}
             width={72}
-            tickFormatter={(value: number) => formatPlotMoney(value, currency)}
+            tickFormatter={(value: number) => formatValue(value)}
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            formatter={(value) => [formatPlotMoney(Number(value ?? 0), currency), title]}
+            formatter={(value) => [formatValue(Number(value ?? 0)), title]}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.label ?? ""}
           />
           {variant === "bar" ? (

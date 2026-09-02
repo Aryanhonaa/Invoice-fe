@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { InvoiceStatusChart, RevenueChart, TeamPerformanceChart } from "@/components/charts";
+import { InvoiceStatusChart, RevenueChart } from "@/components/charts";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { CardSkeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { AdminDashboardSection } from "@/features/dashboard/admin-dashboard-section";
 import { OnboardingCard } from "@/features/dashboard/onboarding-card";
+import { SuperAdminDashboardSection } from "@/features/dashboard/super-admin-dashboard-section";
 import { formatMoney } from "@/lib/invoice-calc";
 import { hasPermission } from "@/lib/permissions";
 import { ApiError } from "@/lib/api/types";
@@ -21,7 +23,7 @@ import { StatCard } from "./stat-card";
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { organizationId, teamId, scopeLabel } = useWorkspace();
+  const { organizationId, scopeLabel } = useWorkspace();
   const requestIdRef = useRef(0);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [preset, setPreset] = useState<DashboardDatePreset>("this_year");
@@ -40,7 +42,6 @@ export function DashboardPage() {
     try {
       const next = await getDashboard({
         organizationId: user?.role === "SUPER_ADMIN" ? undefined : organizationId || undefined,
-        teamId: user?.role === "SUPER_ADMIN" ? undefined : teamId || undefined,
         preset,
         dateFrom: preset === "custom" ? dateFrom : undefined,
         dateTo: preset === "custom" ? dateTo : undefined,
@@ -59,7 +60,7 @@ export function DashboardPage() {
         setLoading(false);
       }
     }
-  }, [dateFrom, dateTo, organizationId, preset, teamId, user]);
+  }, [dateFrom, dateTo, organizationId, preset, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,59 +95,51 @@ export function DashboardPage() {
     );
   }
 
-  const { metrics, currency } = dashboard;
+  const { currency } = dashboard;
   const description =
     dashboard.scope === "SYSTEM"
       ? `Company overview · ${scopeLabel}.`
-      : dashboard.scope === "MEMBER"
-        ? `${scopeLabel}. Invoices and payments you are assigned to.`
-        : `${scopeLabel}. Revenue, receivables, and team performance.`;
+      : dashboard.scope === "ADMIN"
+        ? `${scopeLabel}. Create and manage members in your office.`
+        : dashboard.scope === "MEMBER"
+          ? `${scopeLabel}. Invoices and payments you are assigned to.`
+          : `${scopeLabel}. Revenue, receivables, and member activity.`;
 
   if (dashboard.scope === "SYSTEM") {
     return (
-      <div className="space-y-8">
-        <PageHeader
-          title="Company overview"
-          description="Usage across teams and billing."
-          actions={
-            <DateRangeFilter
-              preset={preset}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              onPresetChange={setPreset}
-              onDateFromChange={setDateFrom}
-              onDateToChange={setDateTo}
-            />
-          }
-        />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Teams" value={String(metrics.teams ?? 0)} hint="Active working groups" />
-          <StatCard label="Administrators" value={String(metrics.admins ?? 0)} hint="ADMIN accounts" />
-          <StatCard label="Members" value={String(metrics.members ?? 0)} />
-          <StatCard label="Customers" value={String(metrics.customers ?? 0)} />
-          <StatCard label="Invoices" value={String(metrics.invoices)} hint="Issued in this period" />
-          <StatCard
-            label="Paid invoices"
-            value={String(metrics.paidInvoices)}
-            hint="Fully paid in this period"
-            tone="success"
-          />
-        </div>
-        {dashboard.teamPerformance.length > 0 ? (
-          <TeamPerformanceChart
-            teams={dashboard.teamPerformance}
-            currency={dashboard.currency}
-            loading={loading}
-          />
-        ) : (
-          <p className="text-sm text-muted">No team activity in this period.</p>
-        )}
-      </div>
+      <SuperAdminDashboardSection
+        dashboard={dashboard}
+        loading={loading}
+        error={error}
+        preset={preset}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onPresetChange={setPreset}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+      />
+    );
+  }
+
+  if (dashboard.scope === "ADMIN") {
+    return (
+      <AdminDashboardSection
+        user={user}
+        dashboard={dashboard}
+        scopeLabel={scopeLabel}
+        loading={loading}
+        error={error}
+        preset={preset}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onPresetChange={setPreset}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+      />
     );
   }
 
   const canCreateInvoice = hasPermission(user, "INVOICES_CREATE");
-  const isAdmin = user.role === "ADMIN";
 
   return (
     <div className="space-y-8">
@@ -174,34 +167,6 @@ export function DashboardPage() {
 
       {canCreateInvoice ? <OnboardingCard /> : null}
 
-
-      {isAdmin ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <StatCard label="Invoices" value={String(metrics.invoices)} hint="In this period" />
-          <StatCard label="Paid" value={String(metrics.paidInvoices)} hint="Fully paid" tone="success" />
-          <StatCard
-            label="Partially paid"
-            value={String(metrics.partiallyPaidInvoices)}
-            hint="Balance remaining"
-          />
-          <StatCard label="Unpaid" value={String(metrics.unpaidInvoices)} hint="Not fully paid" />
-          <StatCard
-            label="Overdue"
-            value={String(metrics.overdueInvoices)}
-            hint="Past due date"
-            tone={metrics.overdueInvoices > 0 ? "warning" : "default"}
-          />
-        </div>
-      ) : null}
-
-      {isAdmin ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <StatCard label="Customers" value={String(metrics.customers ?? 0)} />
-          <StatCard label="Teams" value={String(metrics.teams ?? 0)} />
-          <StatCard label="Members" value={String(metrics.members ?? 0)} />
-        </div>
-      ) : null}
-
       <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
         <RevenueChart
           points={dashboard.revenueSeries}
@@ -211,14 +176,6 @@ export function DashboardPage() {
         />
         <InvoiceStatusChart points={dashboard.invoiceStatusSeries} loading={loading} />
       </div>
-
-      {dashboard.teamPerformance.length > 0 ? (
-        <TeamPerformanceChart
-          teams={dashboard.teamPerformance}
-          currency={currency}
-          loading={loading}
-        />
-      ) : null}
 
       <NeedsAttention dashboard={dashboard} canOperate={canCreateInvoice} />
 

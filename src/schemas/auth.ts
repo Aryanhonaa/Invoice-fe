@@ -11,6 +11,7 @@ export const publicUserSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   phone: z.string().nullable(),
+  avatarUrl: z.string().nullable().optional(),
   role: z.enum(["SUPER_ADMIN", "ADMIN", "MEMBER"]),
   status: z.enum(["ACTIVE", "INACTIVE"]),
   organizationId: z.string().nullable(),

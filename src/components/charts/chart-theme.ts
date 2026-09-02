@@ -16,19 +16,25 @@ export const CHART_COLORS = {
 };
 
 export const INVOICE_STATUS_COLORS: Record<string, string> = {
+  DRAFT: CHART_COLORS.muted,
+  SENT: CHART_COLORS.pending,
+  VIEWED: CHART_COLORS.partial,
   PAID: CHART_COLORS.paid,
-  PENDING: CHART_COLORS.pending,
-  PARTIALLY_PAID: CHART_COLORS.partial,
   OVERDUE: CHART_COLORS.overdue,
   CANCELLED: CHART_COLORS.cancelled,
+  PENDING: CHART_COLORS.pending,
+  PARTIALLY_PAID: CHART_COLORS.partial,
 };
 
 export const INVOICE_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  SENT: "Sent",
+  VIEWED: "Viewed",
   PAID: "Paid",
-  PENDING: "Pending",
-  PARTIALLY_PAID: "Partially paid",
   OVERDUE: "Overdue",
   CANCELLED: "Cancelled",
+  PENDING: "Pending",
+  PARTIALLY_PAID: "Partially paid",
 };
 
 export const tooltipStyle = {

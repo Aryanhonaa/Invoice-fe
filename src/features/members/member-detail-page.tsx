@@ -4,17 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ActionGroup, EditAction, StatusAction } from "@/components/ui/action-buttons";
-import { Button } from "@/components/ui/button";
-import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
-import { Field, SelectInput } from "@/components/ui/field";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { MemberForm, valuesFromMember } from "@/features/members/member-form";
 import { ApiError } from "@/lib/api/types";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { getMember, updateMember, updateMemberStatus } from "@/services/members.service";
-import { addTeamMember, listTeams, removeTeamMember } from "@/services/teams.service";
-import type { MemberFormValues, MemberTeamSummary, MemberUser } from "@/types/member";
-import type { Team } from "@/types/team";
+import type { MemberFormValues, MemberUser } from "@/types/member";
 
 interface MemberDetailPageProps {
   memberId: string;
@@ -25,18 +21,12 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
   const router = useRouter();
   const { notify } = useToast();
   const canManage = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
-  const canAssignTeams = user?.role === "ADMIN";
 
   const [member, setMember] = useState<MemberUser | null>(null);
-  const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [formBusy, setFormBusy] = useState(false);
-  const [assignOpen, setAssignOpen] = useState(false);
-  const [assignTeamId, setAssignTeamId] = useState("");
-  const [assignBusy, setAssignBusy] = useState(false);
-  const [removeTarget, setRemoveTarget] = useState<MemberTeamSummary | null>(null);
   const [statusConfirm, setStatusConfirm] = useState(false);
   const [statusBusy, setStatusBusy] = useState(false);
 
@@ -46,13 +36,6 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
     try {
       const memberData = await getMember(memberId);
       setMember(memberData);
-      const assigned = new Set(memberData.teams.map((team) => team.id));
-      const teamResult = await listTeams({
-        organizationId: memberData.organizationId ?? undefined,
-        status: "ACTIVE",
-        pageSize: 50,
-      });
-      setAvailableTeams(teamResult.items.filter((team) => !assigned.has(team.id)));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load member.");
     } finally {
@@ -95,41 +78,6 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
       notify(err instanceof ApiError ? err.message : "Unable to update member.", "error");
     } finally {
       setFormBusy(false);
-    }
-  }
-
-  async function handleAssign() {
-    if (!assignTeamId) {
-      return;
-    }
-    setAssignBusy(true);
-    try {
-      await addTeamMember(assignTeamId, memberId);
-      setAssignOpen(false);
-      setAssignTeamId("");
-      notify("Member assigned to team");
-      await load();
-    } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Unable to assign member.", "error");
-    } finally {
-      setAssignBusy(false);
-    }
-  }
-
-  async function handleRemove() {
-    if (!removeTarget) {
-      return;
-    }
-    setAssignBusy(true);
-    try {
-      await removeTeamMember(removeTarget.id, memberId);
-      setRemoveTarget(null);
-      notify("Member removed from team");
-      await load();
-    } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Unable to remove member.", "error");
-    } finally {
-      setAssignBusy(false);
     }
   }
 
@@ -187,14 +135,15 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
           </h2>
           <p className="mt-1 text-sm text-muted">{member.email}</p>
         </div>
-        <ActionGroup>
-          <EditAction size="md" onClick={() => setEditing(true)} />
-          <StatusAction
-            size="md"
-            active={member.status === "ACTIVE"}
-            onClick={() => setStatusConfirm(true)}
-          />
-        </ActionGroup>
+        {canManage ? (
+          <ActionGroup>
+            <EditAction onClick={() => setEditing(true)} />
+            <StatusAction
+              active={member.status === "ACTIVE"}
+              onClick={() => setStatusConfirm(true)}
+            />
+          </ActionGroup>
+        ) : null}
       </div>
 
       <section className="grid gap-4 rounded-2xl border border-border bg-surface p-6 md:grid-cols-2">
@@ -204,57 +153,14 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
             {member.status === "ACTIVE" ? "Active" : "Inactive"}
           </p>
         </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-foreground">Teams</h3>
-          {canAssignTeams ? (
-            <Button onClick={() => setAssignOpen(true)} disabled={member.status !== "ACTIVE"}>
-              Assign to team
-            </Button>
-          ) : null}
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted">Administrator</p>
+          <p className="mt-1 text-sm font-medium text-foreground">
+            {member.administrator
+              ? `${member.administrator.firstName} ${member.administrator.lastName}`
+              : "—"}
+          </p>
         </div>
-        {member.teams.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted">
-            This member is not assigned to any team.
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-muted-soft text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Team</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {member.teams.map((team) => (
-                  <tr key={team.id} className="border-t border-border">
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      <Link href={`/teams/${team.id}`} className="hover:underline">
-                        {team.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-muted">
-                      {team.isActive ? "Active" : "Inactive"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {canAssignTeams ? (
-                        <Button variant="dangerSoft" size="sm" onClick={() => setRemoveTarget(team)}>
-                          Remove
-                        </Button>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </section>
 
       {editing ? (
@@ -265,54 +171,6 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
           busy={formBusy}
           onClose={() => setEditing(false)}
           onSubmit={handleEdit}
-        />
-      ) : null}
-
-      {assignOpen ? (
-        <Dialog
-          title="Assign to team"
-          onClose={() => setAssignOpen(false)}
-          footer={
-            <>
-              <Button variant="secondary" onClick={() => setAssignOpen(false)} disabled={assignBusy}>
-                Cancel
-              </Button>
-              <Button onClick={() => void handleAssign()} disabled={assignBusy || !assignTeamId}>
-                {assignBusy ? "Assigning…" : "Assign"}
-              </Button>
-            </>
-          }
-        >
-          <Field label="Team" htmlFor="assign-team" required>
-            <SelectInput
-              id="assign-team"
-              value={assignTeamId}
-              onChange={(event) => setAssignTeamId(event.target.value)}
-              required
-            >
-              <option value="">Select a team</option>
-              {availableTeams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-          {availableTeams.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">No unassigned active teams remain.</p>
-          ) : null}
-        </Dialog>
-      ) : null}
-
-      {removeTarget ? (
-        <ConfirmDialog
-          title="Remove from team"
-          message={`${member.firstName} ${member.lastName} will be removed from ${removeTarget.name}.`}
-          confirmLabel="Remove"
-          danger
-          busy={assignBusy}
-          onCancel={() => setRemoveTarget(null)}
-          onConfirm={() => void handleRemove()}
         />
       ) : null}
 

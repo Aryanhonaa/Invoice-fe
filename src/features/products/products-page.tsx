@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ActionGroup, DeleteAction, EditAction } from "@/components/ui/action-buttons";
 import { Button } from "@/components/ui/button";
 import { DataTable, Table, Td, Th, THead } from "@/components/ui/data-table";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Field, SelectInput, TextInput } from "@/components/ui/field";
@@ -246,18 +246,15 @@ export function ProductsPage() {
                   </Td>
                   {canManage ? (
                     <Td className="text-right">
-                      <DropdownMenu
-                        items={[
-                          {
-                            label: "Edit",
-                            onClick: () => {
-                              setEditing(product);
-                              setFormMode("edit");
-                            },
-                          },
-                          { label: "Delete", onClick: () => setDeleteTarget(product), danger: true },
-                        ]}
-                      />
+                      <ActionGroup>
+                        <EditAction
+                          onClick={() => {
+                            setEditing(product);
+                            setFormMode("edit");
+                          }}
+                        />
+                        <DeleteAction onClick={() => setDeleteTarget(product)} />
+                      </ActionGroup>
                     </Td>
                   ) : null}
                 </tr>

@@ -11,7 +11,13 @@ export type InvoiceStatus =
   | "OVERDUE"
   | "CANCELLED";
 
-export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "NONE";
+export type InvoiceEmailStatus = "NOT_SENT" | "SENT" | "FAILED";
+
+export type PaymentStatus =
+  | "UNPAID"
+  | "PARTIALLY_PAID"
+  | "PAID"
+  | "NONE";
 
 export interface InvoiceItem {
   id: string;
@@ -35,7 +41,6 @@ export interface Invoice {
   organizationId: string;
   customerId: string;
   createdById: string;
-  assignedTeamId: string | null;
   assignedMemberId: string | null;
   invoiceNumber: string;
   status: InvoiceStatus;
@@ -51,6 +56,9 @@ export interface Invoice {
   balanceDue: string;
   notes: string | null;
   terms: string | null;
+  shareUrl: string | null;
+  emailStatus: InvoiceEmailStatus;
+  emailSentAt: string | null;
   sentAt: string | null;
   viewedAt: string | null;
   organization: OrganizationSummary | null;
@@ -63,7 +71,6 @@ export interface Invoice {
     taxNumber: string | null;
   };
   createdBy: { id: string; firstName: string; lastName: string; email: string };
-  assignedTeam: { id: string; name: string } | null;
   assignedMember: { id: string; firstName: string; lastName: string; email: string } | null;
   billingAddress: Address | null;
   shippingAddress: Address | null;
@@ -81,13 +88,47 @@ export interface InvoiceListResult {
   totalPages: number;
 }
 
+export interface InvoiceSummary {
+  all: number;
+  paid: number;
+  outstanding: number;
+  overview: number;
+  void: number;
+}
+
+export interface PublicInvoice {
+  invoiceNumber: string;
+  status: InvoiceStatus;
+  paymentStatus: PaymentStatus;
+  invoiceDate: string;
+  dueDate: string;
+  currency: string;
+  subtotal: string;
+  total: string;
+  amountPaid: string;
+  balanceDue: string;
+  notes: string | null;
+  terms: string | null;
+  organizationName: string;
+  organizationLogoUrl: string | null;
+  customer: {
+    name: string;
+    company: string | null;
+  };
+  billingAddress: Address | null;
+  items: Array<{
+    description: string;
+    quantity: string;
+    unitPrice: string;
+    lineTotal: string;
+  }>;
+}
+
 export interface InvoiceItemFormValues {
   productId: string;
   description: string;
   quantity: string;
   unitPrice: string;
-  discount: string;
-  taxRate: string;
 }
 
 export interface InvoiceFormValues {
@@ -99,7 +140,6 @@ export interface InvoiceFormValues {
   currency: string;
   notes: string;
   terms: string;
-  assignedTeamId: string;
   assignedMemberId: string;
   items: InvoiceItemFormValues[];
 }

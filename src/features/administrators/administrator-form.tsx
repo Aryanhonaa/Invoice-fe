@@ -22,8 +22,6 @@ const emptyValues: AdminFormValues = {
   email: "",
   phone: "",
   organizationId: "",
-  teamId: "",
-  teamIds: [],
   temporaryPassword: "",
   status: "ACTIVE",
 };
@@ -65,7 +63,6 @@ export function AdministratorForm({
       await onSubmit({
         ...values,
         ...parsed.data,
-        teamIds: [],
       } as AdminFormValues);
       return;
     }
@@ -129,7 +126,7 @@ export function AdministratorForm({
         </Field>
         {mode === "create" ? (
           <p className="text-xs text-muted">
-            A temporary password is generated automatically and shown once after you save.
+            A temporary password is generated automatically and appears in the Password column after you save.
           </p>
         ) : null}
       </form>
@@ -144,8 +141,6 @@ export function valuesFromAdmin(admin: AdminUser): AdminFormValues {
     email: admin.email,
     phone: "",
     organizationId: admin.organizationId ?? "",
-    teamId: admin.teams[0]?.id ?? "",
-    teamIds: admin.teams.map((team) => team.id),
     temporaryPassword: "",
     status: admin.status,
   };

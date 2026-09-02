@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OutInvoice",
+  title: "Invoice Hub",
   description: "Office invoicing and business management",
 };
 

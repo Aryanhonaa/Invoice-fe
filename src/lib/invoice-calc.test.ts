@@ -1,25 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { calculateInvoiceTotals } from "./invoice-calc";
+import { calculateInvoiceTotals, calculateLineAmount } from "./invoice-calc";
 
 describe("frontend invoice preview totals", () => {
-  it("matches backend rounding for tax after discount", () => {
+  it("calculates subtotal and total from quantity times unit price", () => {
     const totals = calculateInvoiceTotals([
-      { quantity: "1", unitPrice: "100", discount: "10", taxRate: "13" },
-      { quantity: "2", unitPrice: "25", taxRate: "0" },
+      { quantity: "2", unitPrice: "500" },
+      { quantity: "1", unitPrice: "25" },
     ]);
 
-    expect(totals.subtotal).toBe("150.0000");
-    expect(totals.discountAmount).toBe("10.0000");
-    expect(totals.taxAmount).toBe("11.7000");
-    expect(totals.total).toBe("151.7000");
+    expect(totals.subtotal).toBe("1025.0000");
+    expect(totals.discountAmount).toBe("0.0000");
+    expect(totals.taxAmount).toBe("0.0000");
+    expect(totals.total).toBe("1025.0000");
   });
 
-  it("rejects negative amounts and tax rates over 100", () => {
-    expect(() =>
-      calculateInvoiceTotals([{ quantity: "-1", unitPrice: "10" }]),
-    ).toThrow("Invoice amounts cannot be negative");
-    expect(() =>
-      calculateInvoiceTotals([{ quantity: "1", unitPrice: "10", taxRate: "101" }]),
-    ).toThrow("Tax rate cannot exceed 100");
+  it("calculates line amount from quantity and unit price", () => {
+    expect(calculateLineAmount("2", "500")).toBe("1000.0000");
+  });
+
+  it("rejects zero or negative quantities", () => {
+    expect(() => calculateInvoiceTotals([{ quantity: "0", unitPrice: "10" }])).toThrow(
+      "Quantity must be greater than 0",
+    );
+    expect(() => calculateInvoiceTotals([{ quantity: "-1", unitPrice: "10" }])).toThrow(
+      "Quantity must be greater than 0",
+    );
   });
 });

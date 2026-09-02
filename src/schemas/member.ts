@@ -2,15 +2,16 @@ import { z } from "zod";
 import { organizationSummarySchema } from "@/schemas/admin";
 import { publicUserSchema } from "@/schemas/auth";
 
-export const memberTeamSummarySchema = z.object({
+export const administratorSummarySchema = z.object({
   id: z.string(),
-  name: z.string(),
-  isActive: z.boolean(),
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
 });
 
 export const memberUserSchema = publicUserSchema.extend({
   organization: organizationSummarySchema.nullable(),
-  teams: z.array(memberTeamSummarySchema),
+  administrator: administratorSummarySchema.nullable(),
 });
 
 export const memberListResultSchema = z.object({
@@ -32,5 +33,4 @@ export const memberFormSchema = z.object({
       message: "Temporary password must be at least 8 characters",
     }),
   status: z.enum(["ACTIVE", "INACTIVE"]),
-  teamIds: z.array(z.string()).min(1, "Assign the member to one of your teams"),
 });

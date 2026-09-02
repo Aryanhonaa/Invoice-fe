@@ -14,6 +14,10 @@ const STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Active",
   INACTIVE: "Inactive",
   NONE: "—",
+  NOT_SENT: "Not Sent",
+  SENDING: "Sending",
+  NEW: "NEW",
+  OLD: "OLD",
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -32,6 +36,10 @@ const STATUS_STYLES: Record<string, string> = {
   ACTIVE: "border-border bg-success-soft text-success",
   INACTIVE: "border-border bg-muted-soft text-muted",
   NONE: "border-border bg-muted-soft text-muted",
+  NOT_SENT: "border-border bg-muted-soft text-muted",
+  SENDING: "border-border bg-warning-soft text-warning",
+  NEW: "border-border bg-primary-soft text-primary",
+  OLD: "border-border bg-muted-soft text-muted",
 };
 
 export function statusLabel(status: string): string {

@@ -21,6 +21,15 @@ export const customerSchema = z.object({
   taxNumber: z.string().nullable(),
   notes: z.string().nullable(),
   isActive: z.boolean(),
+  invoiceLifecycleStatus: z.enum(["NEW", "OLD"]).default("NEW"),
+  unsentInvoice: z
+    .object({
+      id: z.string(),
+      invoiceNumber: z.string(),
+      emailStatus: z.enum(["NOT_SENT", "FAILED"]),
+    })
+    .nullable()
+    .default(null),
   billingAddress: addressSchema.nullable(),
   shippingAddress: addressSchema.nullable(),
   organization: organizationSummarySchema.nullable(),
@@ -34,6 +43,13 @@ export const customerListResultSchema = z.object({
   pageSize: z.number(),
   total: z.number(),
   totalPages: z.number(),
+  counts: z
+    .object({
+      all: z.number(),
+      new: z.number(),
+      old: z.number(),
+    })
+    .default({ all: 0, new: 0, old: 0 }),
 });
 
 const optionalAddressFormSchema = z.object({

@@ -33,7 +33,7 @@ const statuses: PaymentRecordStatus[] = [
 
 export function PaymentsPage() {
   const { user } = useAuth();
-  const { organizationId, teamId, tenantListsReady, scopeLabel } = useWorkspace();
+  const { organizationId, tenantListsReady, scopeLabel } = useWorkspace();
   const canRecord = hasPermission(user, "PAYMENTS_CREATE");
   const requestIdRef = useRef(0);
 
@@ -70,7 +70,6 @@ export function PaymentsPage() {
           customerId: customerId || undefined,
           invoiceId: invoiceId || undefined,
           organizationId: organizationId || undefined,
-          teamId: teamId || undefined,
           dateFrom: dateFrom || undefined,
           dateTo: dateTo || undefined,
           page,
@@ -82,7 +81,6 @@ export function PaymentsPage() {
           sort: "createdAt",
           sortDir: "desc",
           organizationId: organizationId || undefined,
-          teamId: teamId || undefined,
         }),
       ]);
       if (requestId !== requestIdRef.current) {
@@ -110,7 +108,6 @@ export function PaymentsPage() {
     page,
     search,
     status,
-    teamId,
     tenantListsReady,
   ]);
 

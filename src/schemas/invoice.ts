@@ -32,7 +32,6 @@ export const invoiceSchema = z.object({
   organizationId: z.string(),
   customerId: z.string(),
   createdById: z.string(),
-  assignedTeamId: z.string().nullable(),
   assignedMemberId: z.string().nullable(),
   invoiceNumber: z.string(),
   status: z.enum([
@@ -56,6 +55,9 @@ export const invoiceSchema = z.object({
   balanceDue: z.string(),
   notes: z.string().nullable(),
   terms: z.string().nullable(),
+  shareUrl: z.string().nullable(),
+  emailStatus: z.enum(["NOT_SENT", "SENT", "FAILED"]),
+  emailSentAt: z.string().nullable(),
   sentAt: z.string().nullable(),
   viewedAt: z.string().nullable(),
   organization: organizationSummarySchema.nullable(),
@@ -68,7 +70,6 @@ export const invoiceSchema = z.object({
     taxNumber: z.string().nullable(),
   }),
   createdBy: userSummarySchema,
-  assignedTeam: z.object({ id: z.string(), name: z.string() }).nullable(),
   assignedMember: userSummarySchema.nullable(),
   billingAddress: addressSchema.nullable(),
   shippingAddress: addressSchema.nullable(),
@@ -95,17 +96,17 @@ export const invoiceFormSchema = z.object({
   currency: z.string().min(1, "Currency is required"),
   notes: z.string(),
   terms: z.string(),
-  assignedTeamId: z.string(),
   assignedMemberId: z.string(),
   items: z
     .array(
       z.object({
         productId: z.string(),
         description: z.string().trim().min(1, "Description is required"),
-        quantity: z.string().min(1, "Quantity is required"),
+        quantity: z
+          .string()
+          .min(1, "Quantity is required")
+          .refine((value) => Number(value) > 0, "Quantity must be greater than 0"),
         unitPrice: z.string().min(1, "Unit price is required"),
-        discount: z.string(),
-        taxRate: z.string(),
       }),
     )
     .min(1, "Add at least one item"),

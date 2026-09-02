@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { AppLogo } from "@/components/brand/app-logo";
 import { Button } from "@/components/ui/button";
 import {
   isNavItemActive,
@@ -126,18 +127,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           collapsed ? "w-[72px]" : "w-60",
         )}
       >
-        <div className="flex h-14 items-center border-b border-sidebar-border px-4">
-          {collapsed ? (
-            <p className="w-full text-center text-sm font-semibold text-primary">OI</p>
-          ) : (
-            <div>
-              <p className="text-sm font-semibold tracking-tight text-sidebar-foreground">OutInvoice</p>
-              <p className="text-[11px] text-sidebar-muted">
-                {user?.role === "SUPER_ADMIN" ? "Company" : "Office"}
-              </p>
-            </div>
-          )}
-        </div>
+        {!collapsed ? (
+          <div className="flex h-14 items-center border-b border-sidebar-border px-3">
+            <Link href="/" className="block min-w-0 overflow-hidden rounded-md px-1 py-0.5">
+              <AppLogo variant="sidebar" size="sidebar" className="h-9 w-auto max-w-full" />
+            </Link>
+          </div>
+        ) : null}
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-2" aria-label="Main">
           {renderGroups(undefined, collapsed)}
         </nav>
@@ -157,11 +153,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             onClick={() => setNavOpen(false)}
           />
           <aside className="relative z-10 flex h-full w-72 max-w-[85vw] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-            <div className="border-b border-sidebar-border px-5 py-4">
-              <p className="text-sm font-semibold tracking-tight text-sidebar-foreground">OutInvoice</p>
-              <p className="mt-0.5 text-xs text-sidebar-muted">
-                {user?.role === "SUPER_ADMIN" ? "Company" : "Office"}
-              </p>
+            <div className="border-b border-sidebar-border px-4 py-3">
+              <Link href="/" className="block overflow-hidden rounded-md px-1 py-0.5" onClick={() => setNavOpen(false)}>
+                <AppLogo variant="sidebar" size="sidebar" className="h-9 w-auto max-w-full" />
+              </Link>
             </div>
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Mobile">
               {renderGroups(() => setNavOpen(false))}
@@ -312,14 +307,6 @@ function NavIconMark({ name }: { name: NavIcon }) {
       return (
         <svg viewBox="0 0 16 16" fill="none" className={common} aria-hidden>
           <path d="M3.5 12.5V8M8 12.5V4M12.5 12.5V6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
-      );
-    case "team":
-      return (
-        <svg viewBox="0 0 16 16" fill="none" className={common} aria-hidden>
-          <circle cx="6" cy="6" r="1.8" stroke="currentColor" strokeWidth="1.3" />
-          <circle cx="11" cy="6.5" r="1.4" stroke="currentColor" strokeWidth="1.3" />
-          <path d="M2.8 12.5c.5-1.8 1.9-2.8 3.5-2.8 1.4 0 2.6.7 3.3 1.9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
       );
     case "member":

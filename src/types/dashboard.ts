@@ -55,9 +55,9 @@ export interface DashboardSeriesPoint {
   amount: string;
 }
 
-export interface DashboardTeamPerformance {
-  teamId: string | null;
-  teamName: string;
+export interface DashboardMemberPerformance {
+  memberId: string | null;
+  memberName: string;
   invoiceCount: number;
   revenue: string;
   outstanding: string;
@@ -79,13 +79,45 @@ export interface DashboardOrganizationActivity {
   revenue: string;
 }
 
+export interface DashboardMoneyByCurrency {
+  currency: string;
+  amount: string;
+}
+
+export interface DashboardEmailDelivery {
+  sent: number;
+  failed: number;
+  notSent: number;
+}
+
+export interface DashboardAdministratorOverview {
+  administratorId: string;
+  administratorName: string;
+  status: string;
+  memberCount: number;
+  customerCount: number;
+  invoiceCount: number;
+  paidInvoiceCount: number;
+  revenue: string;
+  outstanding: string;
+  currency: string;
+}
+
+export interface DashboardRecentCustomer {
+  customerId: string;
+  customerName: string;
+  createdAt: string;
+  invoiceCount: number;
+  paid: string;
+  currency: string;
+}
+
 export interface DashboardMetrics {
   organizations: number | null;
   activeOrganizations: number | null;
   inactiveOrganizations: number | null;
   admins: number | null;
   members: number | null;
-  teams: number | null;
   customers: number | null;
   invoices: number;
   paidInvoices: number;
@@ -97,26 +129,42 @@ export interface DashboardMetrics {
   paidAmount: string;
   outstandingBalance: string;
   overdueAmount: string;
+  draftInvoices: number;
+  sentInvoices: number;
+  viewedInvoices: number;
+  cancelledInvoices: number;
+  failedEmails: number;
+  adminsWithoutMembers: number;
 }
 
 export interface Dashboard {
   role: UserRole;
-  scope: "SYSTEM" | "ORGANIZATION" | "MEMBER";
+  scope: "SYSTEM" | "ORGANIZATION" | "MEMBER" | "ADMIN";
   organizationId: string | null;
-  teamId: string | null;
   currency: string;
   granularity: "day" | "month";
   range: { preset: string; start: string; end: string };
   metrics: DashboardMetrics;
   invoiceStatusSeries: Array<{ status: string; count: number }>;
   revenueSeries: DashboardSeriesPoint[];
+  invoiceCountSeries: DashboardSeriesPoint[];
   paymentSeries: DashboardSeriesPoint[];
   expenseSeries: DashboardSeriesPoint[];
-  teamPerformance: DashboardTeamPerformance[];
+  memberPerformance: DashboardMemberPerformance[];
   topCustomers: DashboardTopCustomer[];
   organizationActivity: DashboardOrganizationActivity[];
   recentInvoices: DashboardInvoiceSummary[];
   recentPayments: DashboardPaymentSummary[];
   overdueInvoices: DashboardInvoiceSummary[];
   organizations: Array<{ id: string; name: string }>;
+  currencies: string[];
+  revenueByCurrency: DashboardMoneyByCurrency[];
+  outstandingByCurrency: DashboardMoneyByCurrency[];
+  overdueByCurrency: DashboardMoneyByCurrency[];
+  emailDelivery: DashboardEmailDelivery;
+  invoiceCreatedSeries: DashboardSeriesPoint[];
+  invoiceSentSeries: DashboardSeriesPoint[];
+  invoicePaidSeries: DashboardSeriesPoint[];
+  administratorOverview: DashboardAdministratorOverview[];
+  recentCustomers: DashboardRecentCustomer[];
 }

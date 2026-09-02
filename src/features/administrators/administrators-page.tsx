@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ActionGroup, EditAction, StatusAction } from "@/components/ui/action-buttons";
 import { Button } from "@/components/ui/button";
 import { DataTable, Table, Td, Th, THead } from "@/components/ui/data-table";
-import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Field, SelectInput, TextInput } from "@/components/ui/field";
@@ -16,7 +16,13 @@ import {
   AdministratorForm,
   valuesFromAdmin,
 } from "@/features/administrators/administrator-form";
+import { MemberPasswordCell } from "@/features/members/member-password-cell";
 import { ApiError } from "@/lib/api/types";
+import {
+  getCachedAdminPasswords,
+  setCachedAdminPassword,
+} from "@/lib/admin-password-cache";
+import { copyText } from "@/lib/copy-text";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import {
@@ -35,6 +41,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   const { notify } = useToast();
 
   const [result, setResult] = useState<AdminListResult | null>(null);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -43,11 +50,13 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [formBusy, setFormBusy] = useState(false);
-  const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
-  const [statusBusy, setStatusBusy] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
-  const [generatedEmail, setGeneratedEmail] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<AdminUser | null>(null);
+  const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
+  const [copyBusyId, setCopyBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPasswords(getCachedAdminPasswords());
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +69,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         pageSize: 10,
       });
       setResult(admins);
+      setPasswords((current) => ({ ...getCachedAdminPasswords(), ...current }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load administrators.");
     } finally {
@@ -91,13 +101,39 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
     };
   }, [load, user?.role]);
 
+  function rememberPassword(adminId: string, password: string) {
+    setCachedAdminPassword(adminId, password);
+    setPasswords((current) => ({ ...current, [adminId]: password }));
+  }
+
+  async function handleCopyPassword(admin: AdminUser) {
+    setCopyBusyId(admin.id);
+    try {
+      let password = passwords[admin.id] ?? getCachedAdminPasswords()[admin.id] ?? null;
+
+      if (!password) {
+        const result = await resetAdminPassword(admin.id);
+        password = result.temporaryPassword;
+        rememberPassword(admin.id, password);
+      }
+
+      await copyText(password);
+      notify("Password copied");
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Unable to copy password.", "error");
+    } finally {
+      setCopyBusyId(null);
+    }
+  }
+
   async function handleCreate(values: AdminFormValues) {
     setFormBusy(true);
     try {
       const created = await createAdmin(values);
+      if (created.temporaryPassword) {
+        rememberPassword(created.user.id, created.temporaryPassword);
+      }
       setFormMode(null);
-      setGeneratedPassword(created.temporaryPassword);
-      setGeneratedEmail(created.user.email);
       notify("Administrator added.");
       await load();
     } catch (err) {
@@ -113,12 +149,18 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
     }
     setFormBusy(true);
     try {
-      await updateAdmin(editing.id, values);
+      const updated = await updateAdmin(editing.id, values);
       setFormMode(null);
       setEditing(null);
-      setSelectedAdmin(null);
       notify("Administrator updated.");
-      await load();
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) => (item.id === updated.id ? updated : item)),
+            }
+          : current,
+      );
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to update administrator.", "error");
     } finally {
@@ -127,33 +169,27 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   }
 
   async function handleStatusChange() {
-    if (!selectedAdmin) {
+    if (!statusTarget) {
       return;
     }
-    setStatusBusy(true);
-    const nextStatus = selectedAdmin.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    setStatusBusyId(statusTarget.id);
+    const nextStatus = statusTarget.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
-      await updateAdminStatus(selectedAdmin.id, nextStatus);
+      const updated = await updateAdminStatus(statusTarget.id, nextStatus);
+      setStatusTarget(null);
       notify(nextStatus === "ACTIVE" ? "Administrator activated" : "Administrator deactivated");
-      await load();
-      setSelectedAdmin(null);
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) => (item.id === updated.id ? updated : item)),
+            }
+          : current,
+      );
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to update status.", "error");
     } finally {
-      setStatusBusy(false);
-    }
-  }
-
-  async function handleResendCredentials() {
-    if (!selectedAdmin) {
-      return;
-    }
-    try {
-      const result = await resetAdminPassword(selectedAdmin.id);
-      setGeneratedPassword(result.temporaryPassword);
-      setGeneratedEmail(selectedAdmin.email);
-    } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Unable to reset password.", "error");
+      setStatusBusyId(null);
     }
   }
 
@@ -163,18 +199,17 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
 
   return (
     <div className="space-y-6">
-      {embedded ? null : (
+      {!embedded ? (
         <PageHeader
           title="Administrators"
           description="Team administrators who manage members, customers, and invoices."
           actions={<Button onClick={() => setFormMode("create")}>Add administrator</Button>}
         />
-      )}
-      {embedded ? (
+      ) : (
         <div className="flex justify-end">
           <Button onClick={() => setFormMode("create")}>Add administrator</Button>
         </div>
-      ) : null}
+      )}
 
       <form
         className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
@@ -220,7 +255,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
       ) : !result || result.items.length === 0 ? (
         <EmptyState
           title="No administrators yet"
-          description="Add an administrator. They will create their own teams and members."
+          description="Add an administrator who can create and manage their own members."
           action={<Button onClick={() => setFormMode("create")}>Add administrator</Button>}
         />
       ) : (
@@ -232,43 +267,45 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
               <tr>
                 <Th>Name</Th>
                 <Th>Email</Th>
-                <Th>Teams</Th>
+                <Th>Password</Th>
                 <Th>Status</Th>
                 <Th className="text-right">Actions</Th>
               </tr>
             </THead>
             <tbody>
               {result.items.map((admin) => (
-                <tr
-                  key={admin.id}
-                  className="cursor-pointer border-t border-border hover:bg-muted-soft"
-                  onClick={() => setSelectedAdmin(admin)}
-                >
+                <tr key={admin.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <span className="font-medium">
                       {admin.firstName} {admin.lastName}
                     </span>
                   </Td>
                   <Td muted>{admin.email}</Td>
-                  <Td muted>
-                    {admin.teams.length > 0
-                      ? admin.teams.map((team) => team.name).join(", ")
-                      : "—"}
+                  <Td>
+                    <MemberPasswordCell
+                      password={passwords[admin.id] ?? null}
+                      copying={copyBusyId === admin.id}
+                      onCopy={() => handleCopyPassword(admin)}
+                    />
                   </Td>
                   <Td>
                     <StatusBadge status={admin.status} />
                   </Td>
                   <Td className="text-right">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedAdmin(admin);
-                      }}
-                    >
-                      View
-                    </Button>
+                    <ActionGroup>
+                      <EditAction
+                        onClick={() => {
+                          setEditing(admin);
+                          setFormMode("edit");
+                        }}
+                      />
+                      <StatusAction
+                        active={admin.status === "ACTIVE"}
+                        loading={statusBusyId === admin.id}
+                        disabled={Boolean(statusBusyId && statusBusyId !== admin.id)}
+                        onClick={() => setStatusTarget(admin)}
+                      />
+                    </ActionGroup>
                   </Td>
                 </tr>
               ))}
@@ -301,149 +338,20 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         />
       ) : null}
 
-      {selectedAdmin && !formMode ? (
-        <Dialog
-          title={`${selectedAdmin.firstName} ${selectedAdmin.lastName}`}
-          onClose={() => setSelectedAdmin(null)}
-          footer={
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setSelectedAdmin(null)}
-                disabled={formBusy || statusBusy}
-              >
-                Close
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => void handleResendCredentials()}
-                disabled={formBusy || statusBusy}
-              >
-                Resend credentials
-              </Button>
-              <Button
-                variant={selectedAdmin.status === "ACTIVE" ? "danger" : "primary"}
-                onClick={() => void handleStatusChange()}
-                disabled={formBusy || statusBusy}
-              >
-                {statusBusy ? "Updating…" : selectedAdmin.status === "ACTIVE" ? "Deactivate" : "Activate"}
-              </Button>
-              <Button
-                onClick={() => {
-                  setEditing(selectedAdmin);
-                  setFormMode("edit");
-                }}
-                disabled={formBusy || statusBusy}
-              >
-                Edit
-              </Button>
-            </div>
+      {statusTarget ? (
+        <ConfirmDialog
+          title={statusTarget.status === "ACTIVE" ? "Deactivate Administrator?" : "Activate Administrator?"}
+          message={
+            statusTarget.status === "ACTIVE"
+              ? "Are you sure you want to deactivate this administrator? They will no longer be able to access the system."
+              : `${statusTarget.firstName} ${statusTarget.lastName} will be able to sign in again.`
           }
-        >
-          <div className="space-y-4">
-            <div className="grid gap-3">
-              <div>
-                <p className="text-xs font-medium text-slate-500">Email</p>
-                <p className="text-sm text-foreground">{selectedAdmin.email}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-slate-500">Teams</p>
-                <p className="text-sm text-foreground">
-                  {selectedAdmin.teams.length > 0
-                    ? selectedAdmin.teams.map((team) => team.name).join(", ")
-                    : "None"}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Status</p>
-                  <p className="mt-1">
-                    <StatusBadge status={selectedAdmin.status} />
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Dialog>
-      ) : null}
-
-      {generatedPassword ? (
-        <Dialog
-          title="Administrator credentials"
-          onClose={() => {
-            setGeneratedPassword(null);
-            setGeneratedEmail(null);
-            setShowPassword(false);
-          }}
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-muted">
-              Share these credentials. The password is not stored in plain text and will not be shown again.
-            </p>
-
-            {generatedEmail ? (
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted">Email / Username</p>
-                <div className="flex gap-2">
-                  <p className="flex-1 break-all rounded-lg bg-muted-soft px-3 py-2 font-mono text-sm">
-                    {generatedEmail}
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatedEmail);
-                      notify("Email copied.");
-                    }}
-                  >
-                    Copy
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
-            <div>
-              <p className="mb-1 text-xs font-medium text-muted">Temporary Password</p>
-              <div className="flex gap-2">
-                <p className="flex-1 break-all rounded-lg bg-muted-soft px-3 py-2 font-mono text-sm">
-                  {showPassword ? generatedPassword : "•".repeat(Math.min(generatedPassword?.length ?? 0, 20))}
-                </p>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? "Hide" : "View"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    navigator.clipboard.writeText(generatedPassword);
-                    notify("Password copied.");
-                  }}
-                >
-                  Copy
-                </Button>
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="w-full"
-                onClick={() => {
-                  const text = `Email: ${generatedEmail}\nPassword: ${generatedPassword}`;
-                  navigator.clipboard.writeText(text);
-                  notify("Credentials copied.");
-                }}
-              >
-                Copy both
-              </Button>
-            </div>
-          </div>
-        </Dialog>
+          confirmLabel={statusTarget.status === "ACTIVE" ? "Deactivate" : "Activate"}
+          danger={statusTarget.status === "ACTIVE"}
+          busy={statusBusyId === statusTarget.id}
+          onCancel={() => setStatusTarget(null)}
+          onConfirm={() => void handleStatusChange()}
+        />
       ) : null}
     </div>
   );

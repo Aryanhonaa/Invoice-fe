@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/field";
-import { FormSection, MoreOptions } from "@/components/ui/form-section";
+import { FormSection } from "@/components/ui/form-section";
 import { Surface } from "@/components/ui/page-header";
 import { Stepper } from "@/components/ui/stepper";
 import { CustomerForm } from "@/features/customers/customer-form";
-import { calculateInvoiceTotals, formatMoney } from "@/lib/invoice-calc";
+import { InvoiceCustomerPicker } from "@/features/invoices/invoice-customer-picker";
+import { InvoiceItemsSection } from "@/features/invoices/invoice-items-section";
+import { calculateInvoiceTotals, calculateLineAmount, formatMoney } from "@/lib/invoice-calc";
 import { ApiError } from "@/lib/api/types";
 import { invoiceFormSchema } from "@/schemas/invoice";
 import { createCustomer } from "@/services/customers.service";
@@ -16,15 +18,14 @@ import { useToast } from "@/providers/toast-provider";
 import type { Customer, CustomerFormValues, Product } from "@/types/catalog";
 import type { Invoice, InvoiceFormValues, InvoiceItemFormValues } from "@/types/invoice";
 import type { MemberUser } from "@/types/member";
-import type { Team } from "@/types/team";
 
 interface InvoiceFormProps {
   mode: "create" | "edit";
   customers: Customer[];
   products: Product[];
-  teams: Team[];
   members: MemberUser[];
   canCreateCustomer?: boolean;
+  canSend?: boolean;
   initialValues?: Partial<InvoiceFormValues>;
   busy: boolean;
   error?: string | null;
@@ -35,9 +36,7 @@ const emptyItem: InvoiceItemFormValues = {
   productId: "",
   description: "",
   quantity: "1",
-  unitPrice: "",
-  discount: "0",
-  taxRate: "",
+  unitPrice: "0",
 };
 
 const STEPS = [
@@ -61,9 +60,9 @@ export function InvoiceForm({
   mode,
   customers,
   products,
-  teams,
   members,
   canCreateCustomer = true,
+  canSend = false,
   initialValues,
   busy,
   error,
@@ -73,6 +72,7 @@ export function InvoiceForm({
   const [step, setStep] = useState(0);
   const [highestReached, setHighestReached] = useState(0);
   const [addedCustomers, setAddedCustomers] = useState<Customer[]>([]);
+  const [pickedCustomer, setPickedCustomer] = useState<Customer | null>(null);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const [customerBusy, setCustomerBusy] = useState(false);
   const [values, setValues] = useState<InvoiceFormValues>({
@@ -84,7 +84,6 @@ export function InvoiceForm({
     currency: initialValues?.currency ?? "USD",
     notes: initialValues?.notes ?? "",
     terms: initialValues?.terms ?? "Payment due within 14 days.",
-    assignedTeamId: initialValues?.assignedTeamId ?? "",
     assignedMemberId: initialValues?.assignedMemberId ?? "",
     items: initialValues?.items?.length ? initialValues.items : [{ ...emptyItem }],
   });
@@ -96,15 +95,15 @@ export function InvoiceForm({
     return [...addedCustomers.filter((customer) => !ids.has(customer.id)), ...customers];
   }, [addedCustomers, customers]);
 
-  const selectedCustomer = customerList.find((customer) => customer.id === values.customerId);
+  const selectedCustomer =
+    (pickedCustomer?.id === values.customerId ? pickedCustomer : null) ??
+    customerList.find((customer) => customer.id === values.customerId);
   const totals = useMemo(() => {
     try {
       return calculateInvoiceTotals(
         values.items.map((item) => ({
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          discount: item.discount,
-          taxRate: item.taxRate,
         })),
       );
     } catch {
@@ -136,14 +135,24 @@ export function InvoiceForm({
       productId,
       description: product?.name ?? values.items[index].description,
       unitPrice: product ? String(product.unitPrice) : values.items[index].unitPrice,
-      taxRate:
-        product?.taxRate === null || product?.taxRate === undefined
-          ? values.items[index].taxRate
-          : String(product.taxRate),
     });
     if (product?.currency) {
       update("currency", product.currency);
     }
+  }
+
+  function addItem() {
+    update("items", [...values.items, { ...emptyItem }]);
+  }
+
+  function removeItem(index: number) {
+    if (values.items.length === 1) {
+      return;
+    }
+    update(
+      "items",
+      values.items.filter((_, itemIndex) => itemIndex !== index),
+    );
   }
 
   function goTo(next: number) {
@@ -208,6 +217,7 @@ export function InvoiceForm({
     try {
       const created = await createCustomer(formValues);
       setAddedCustomers((current) => [created, ...current]);
+      setPickedCustomer(created);
       update("customerId", created.id);
       if (formValues.organizationId) {
         update("organizationId", formValues.organizationId);
@@ -219,6 +229,15 @@ export function InvoiceForm({
     } finally {
       setCustomerBusy(false);
     }
+  }
+
+  function handleSelectCustomer(customer: Customer) {
+    setPickedCustomer(customer);
+    update("customerId", customer.id);
+    if (customer.organizationId) {
+      update("organizationId", customer.organizationId);
+    }
+    setFormError(null);
   }
 
   return (
@@ -236,38 +255,60 @@ export function InvoiceForm({
 
       {step === 0 ? (
         <Surface>
-          <FormSection title="Customer" description="Who are you billing?">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field
-                label="Customer"
-                htmlFor="invoice-customer"
-                required
-                hint="Choose an existing customer, or add a new one."
-              >
-                <SelectInput
-                  id="invoice-customer"
-                  value={values.customerId}
-                  onChange={(event) => update("customerId", event.target.value)}
-                  required
-                  aria-invalid={!values.customerId && Boolean(formError)}
-                >
-                  <option value="">Select a customer</option>
-                  {customerList.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                      {customer.company ? ` — ${customer.company}` : ""}
-                    </option>
-                  ))}
-                </SelectInput>
-              </Field>
-            </div>
-            {canCreateCustomer ? (
-              <div className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setAddCustomerOpen(true)}>
-                  Add new customer
-                </Button>
+          <FormSection
+            title="Customer"
+            description={
+              mode === "create"
+                ? "Pick who you are billing. Use New to find customers who have never successfully received an invoice."
+                : "Who are you billing?"
+            }
+          >
+            {mode === "create" ? (
+              <div className="space-y-4">
+                <InvoiceCustomerPicker
+                  selectedCustomerId={values.customerId}
+                  canSend={canSend}
+                  addedCustomers={addedCustomers}
+                  onSelect={handleSelectCustomer}
+                  onCustomerUpdated={(customer) => {
+                    setPickedCustomer(customer);
+                    setAddedCustomers((current) =>
+                      current.map((item) => (item.id === customer.id ? customer : item)),
+                    );
+                  }}
+                />
+                {canCreateCustomer ? (
+                  <Button type="button" variant="outline" onClick={() => setAddCustomerOpen(true)}>
+                    Add new customer
+                  </Button>
+                ) : null}
               </div>
-            ) : null}
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field
+                  label="Customer"
+                  htmlFor="invoice-customer"
+                  required
+                  hint="Choose an existing customer, or add a new one."
+                >
+                  <SelectInput
+                    id="invoice-customer"
+                    value={values.customerId}
+                    onChange={(event) => update("customerId", event.target.value)}
+                    required
+                    aria-invalid={!values.customerId && Boolean(formError)}
+                  >
+                    <option value="">Select a customer</option>
+                    {customerList.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name}
+                        {customer.company ? ` — ${customer.company}` : ""}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </Field>
+              </div>
+            )}
           </FormSection>
         </Surface>
       ) : null}
@@ -326,123 +367,14 @@ export function InvoiceForm({
       ) : null}
 
       {step === 2 ? (
-        <Surface>
-          <FormSection title="Invoice items" description="Enter what you are billing. Description is free text.">
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => update("items", [...values.items, { ...emptyItem }])}
-              >
-                Add item
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {values.items.map((item, index) => (
-                <div
-                  key={`item-${index}`}
-                  className="grid gap-3 rounded-2xl border border-border p-4 md:grid-cols-12"
-                >
-                  <div className="md:col-span-5">
-                    <Field label="Description" htmlFor={`item-desc-${index}`} required>
-                      <TextInput
-                        id={`item-desc-${index}`}
-                        value={item.description}
-                        placeholder="Website development"
-                        onChange={(event) => updateItem(index, { description: event.target.value })}
-                        required
-                      />
-                    </Field>
-                  </div>
-                  <div className="md:col-span-1">
-                    <Field label="Qty" htmlFor={`item-qty-${index}`} required>
-                      <TextInput
-                        id={`item-qty-${index}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.quantity}
-                        onChange={(event) => updateItem(index, { quantity: event.target.value })}
-                        required
-                      />
-                    </Field>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Field label="Unit price" htmlFor={`item-price-${index}`} required>
-                      <TextInput
-                        id={`item-price-${index}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unitPrice}
-                        onChange={(event) => updateItem(index, { unitPrice: event.target.value })}
-                        required
-                      />
-                    </Field>
-                  </div>
-                  <div className="md:col-span-1">
-                    <Field label="Discount" htmlFor={`item-disc-${index}`}>
-                      <TextInput
-                        id={`item-disc-${index}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.discount}
-                        onChange={(event) => updateItem(index, { discount: event.target.value })}
-                      />
-                    </Field>
-                  </div>
-                  <div className="md:col-span-1">
-                    <Field label="Tax %" htmlFor={`item-tax-${index}`} hint="Tax applied to this line.">
-                      <TextInput
-                        id={`item-tax-${index}`}
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={item.taxRate}
-                        onChange={(event) => updateItem(index, { taxRate: event.target.value })}
-                      />
-                    </Field>
-                  </div>
-                  <div className="flex items-end md:col-span-1">
-                    <Button
-                      variant="ghost"
-                      onClick={() =>
-                        update(
-                          "items",
-                          values.items.length === 1
-                            ? [{ ...emptyItem }]
-                            : values.items.filter((_, itemIndex) => itemIndex !== index),
-                        )
-                      }
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <dl className="mt-4 space-y-2 border-t border-border pt-4 text-sm md:ml-auto md:w-80">
-              <div className="flex justify-between">
-                <dt className="text-muted">Subtotal</dt>
-                <dd>{formatMoney(totals.subtotal, values.currency)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Discount</dt>
-                <dd>{formatMoney(totals.discountAmount, values.currency)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Tax</dt>
-                <dd>{formatMoney(totals.taxAmount, values.currency)}</dd>
-              </div>
-              <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
-                <dt>Total</dt>
-                <dd>{formatMoney(totals.total, values.currency)}</dd>
-              </div>
-            </dl>
-          </FormSection>
-        </Surface>
+        <InvoiceItemsSection
+          items={values.items}
+          currency={values.currency}
+          totals={totals}
+          onAddItem={addItem}
+          onRemoveItem={removeItem}
+          onUpdateItem={updateItem}
+        />
       ) : null}
 
       {step === 3 ? (
@@ -467,18 +399,22 @@ export function InvoiceForm({
                 <table className="min-w-full text-left text-sm">
                   <thead className="text-xs font-medium uppercase tracking-wide text-muted">
                     <tr>
-                      <th className="py-2 pr-3">Item</th>
-                      <th className="py-2 pr-3">Qty</th>
-                      <th className="py-2">Price</th>
+                      <th className="py-2 pr-3">Description</th>
+                      <th className="py-2 pr-3 text-right">Qty</th>
+                      <th className="py-2 pr-3 text-right">Unit Price</th>
+                      <th className="py-2 text-right">Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {values.items.map((item, index) => (
                       <tr key={`review-${index}`} className="border-t border-border">
                         <td className="py-2 pr-3">{item.description || "—"}</td>
-                        <td className="py-2 pr-3 text-muted">{item.quantity}</td>
-                        <td className="py-2 text-muted">
+                        <td className="py-2 pr-3 text-right text-muted">{item.quantity}</td>
+                        <td className="py-2 pr-3 text-right text-muted">
                           {item.unitPrice ? formatMoney(item.unitPrice, values.currency) : "—"}
+                        </td>
+                        <td className="py-2 text-right text-muted">
+                          {formatMoney(calculateLineAmount(item.quantity, item.unitPrice), values.currency)}
                         </td>
                       </tr>
                     ))}
@@ -523,14 +459,6 @@ export function InvoiceForm({
                 <dt className="text-muted">Subtotal</dt>
                 <dd>{formatMoney(totals.subtotal, values.currency)}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Discount</dt>
-                <dd>{formatMoney(totals.discountAmount, values.currency)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Tax</dt>
-                <dd>{formatMoney(totals.taxAmount, values.currency)}</dd>
-              </div>
               <div className="flex justify-between border-t border-border pt-3 text-base font-semibold">
                 <dt>Total</dt>
                 <dd>{formatMoney(totals.total, values.currency)}</dd>
@@ -559,8 +487,8 @@ export function InvoiceForm({
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {step < 3 ? (
-            <Button onClick={handleNext}>Next</Button>
+          {step < STEPS.length - 1 ? (
+            <Button onClick={handleNext}>{step === 2 ? "Continue" : "Next"}</Button>
           ) : (
             <>
               <Button variant="secondary" onClick={() => void save()} disabled={busy}>
@@ -606,15 +534,12 @@ export function valuesFromInvoice(invoice: Invoice): InvoiceFormValues {
     currency: invoice.currency,
     notes: invoice.notes ?? "",
     terms: invoice.terms ?? "",
-    assignedTeamId: invoice.assignedTeamId ?? "",
     assignedMemberId: invoice.assignedMemberId ?? "",
     items: invoice.items.map((item) => ({
       productId: item.productId ?? "",
       description: item.description,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
-      discount: item.discount,
-      taxRate: item.taxRate ?? "",
     })),
   };
 }
