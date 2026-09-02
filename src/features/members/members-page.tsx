@@ -79,7 +79,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         pageSize: 10,
       });
       setResult(members);
-      setPasswords((current) => ({ ...getCachedMemberPasswords(), ...current }));
+      setPasswords((current) => ({ ...current, ...getCachedMemberPasswords() }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load members.");
     } finally {
@@ -116,6 +116,16 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
     setPasswords((current) => ({ ...current, [memberId]: password }));
   }
 
+  async function ensurePassword(member: MemberUser): Promise<string> {
+    const existing = passwords[member.id] ?? getCachedMemberPasswords()[member.id] ?? null;
+    if (existing) {
+      return existing;
+    }
+    const result = await resetMemberPassword(member.id);
+    rememberPassword(member.id, result.temporaryPassword);
+    return result.temporaryPassword;
+  }
+
   async function copyPasswordToClipboard(text: string) {
     await copyText(text);
     notify("Password copied");
@@ -124,17 +134,25 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
   async function handleCopyPassword(member: MemberUser) {
     setCopyBusyId(member.id);
     try {
-      let password = passwords[member.id] ?? getCachedMemberPasswords()[member.id] ?? null;
-
-      if (!password) {
-        const result = await resetMemberPassword(member.id);
-        password = result.temporaryPassword;
-        rememberPassword(member.id, password);
-      }
-
+      const password = await ensurePassword(member);
       await copyPasswordToClipboard(password);
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to copy password.", "error");
+    } finally {
+      setCopyBusyId(null);
+    }
+  }
+
+  async function handleRevealPassword(member: MemberUser) {
+    if (passwords[member.id] ?? getCachedMemberPasswords()[member.id]) {
+      return;
+    }
+    setCopyBusyId(member.id);
+    try {
+      await ensurePassword(member);
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Unable to show password.", "error");
+      throw err;
     } finally {
       setCopyBusyId(null);
     }
@@ -152,6 +170,9 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
       setFormMode(null);
       notify("Member added.");
       await load();
+      if (password) {
+        rememberPassword(created.user.id, password);
+      }
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to create member.", "error");
     } finally {
@@ -313,6 +334,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
                       password={passwords[member.id] ?? null}
                       copying={copyBusyId === member.id}
                       onCopy={() => handleCopyPassword(member)}
+                      onReveal={() => handleRevealPassword(member)}
                     />
                   </Td>
                   <Td>
