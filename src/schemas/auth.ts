@@ -5,6 +5,13 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const administratorSummarySchema = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string().email(),
+});
+
 export const publicUserSchema = z.object({
   id: z.string(),
   email: z.string().email(),
@@ -16,6 +23,7 @@ export const publicUserSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE"]),
   organizationId: z.string().nullable(),
   permissions: z.array(z.string()),
+  administrator: administratorSummarySchema.nullable(),
   lastLoginAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),

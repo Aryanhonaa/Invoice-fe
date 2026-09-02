@@ -52,10 +52,39 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function inDays(days: number): string {
-  const date = new Date();
+function inDays(days: number, fromDate = today()): string {
+  const date = new Date(`${fromDate}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+const PAYMENT_TERM_OPTIONS = [
+  { value: "0", label: "Due on receipt" },
+  { value: "7", label: "Net 7" },
+  { value: "14", label: "Net 14" },
+  { value: "30", label: "Net 30" },
+  { value: "60", label: "Net 60" },
+  { value: "custom", label: "Custom date" },
+] as const;
+
+type PaymentTermValue = (typeof PAYMENT_TERM_OPTIONS)[number]["value"];
+
+function paymentTermsLabel(days: number): string {
+  if (days === 0) {
+    return "Payment due on receipt.";
+  }
+  return `Payment due within ${days} days.`;
+}
+
+function inferPaymentTerm(invoiceDate: string, dueDate: string): PaymentTermValue {
+  const start = new Date(`${invoiceDate}T00:00:00.000Z`).getTime();
+  const end = new Date(`${dueDate}T00:00:00.000Z`).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end)) {
+    return "custom";
+  }
+  const diff = Math.round((end - start) / (24 * 60 * 60 * 1000));
+  const match = PAYMENT_TERM_OPTIONS.find((option) => option.value === String(diff));
+  return match?.value ?? "custom";
 }
 
 export function InvoiceForm({
@@ -80,13 +109,17 @@ export function InvoiceForm({
     dueDate: initialValues?.dueDate ?? inDays(14),
     currency: initialValues?.currency ?? "USD",
     notes: initialValues?.notes ?? "",
-    terms: initialValues?.terms ?? "Payment due within 14 days.",
+    terms: initialValues?.terms ?? paymentTermsLabel(14),
     assignedMemberId: initialValues?.assignedMemberId ?? "",
     items: initialValues?.items?.length ? initialValues.items : [{ ...emptyItem }],
   };
   const [step, setStep] = usePersistedFormState(`${persistKey}:step`, 0);
   const [highestReached, setHighestReached] = usePersistedFormState(`${persistKey}:highest`, 0);
   const [values, setValues] = usePersistedFormState(`${persistKey}:values`, defaultValues);
+  const [paymentTerm, setPaymentTerm] = usePersistedFormState<PaymentTermValue>(
+    `${persistKey}:payment-term`,
+    inferPaymentTerm(defaultValues.invoiceDate, defaultValues.dueDate),
+  );
   const [addedCustomers, setAddedCustomers] = useState<Customer[]>([]);
   const [pickedCustomer, setPickedCustomer] = useState<Customer | null>(null);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
@@ -99,7 +132,39 @@ export function InvoiceForm({
       `${persistKey}:step`,
       `${persistKey}:highest`,
       `${persistKey}:values`,
+      `${persistKey}:payment-term`,
     ]);
+  }
+
+  function updateInvoiceDate(invoiceDate: string) {
+    setValues((current) => {
+      const next = { ...current, invoiceDate };
+      if (paymentTerm !== "custom") {
+        next.dueDate = inDays(Number(paymentTerm), invoiceDate);
+        next.terms = paymentTermsLabel(Number(paymentTerm));
+      } else if (next.dueDate < invoiceDate) {
+        next.dueDate = invoiceDate;
+      }
+      return next;
+    });
+  }
+
+  function updatePaymentTerm(nextTerm: PaymentTermValue) {
+    setPaymentTerm(nextTerm);
+    if (nextTerm === "custom") {
+      return;
+    }
+    const days = Number(nextTerm);
+    setValues((current) => ({
+      ...current,
+      dueDate: inDays(days, current.invoiceDate),
+      terms: paymentTermsLabel(days),
+    }));
+  }
+
+  function updateDueDate(dueDate: string) {
+    setPaymentTerm("custom");
+    update("dueDate", dueDate);
   }
 
   const customerList = useMemo(() => {
@@ -188,6 +253,10 @@ export function InvoiceForm({
       }
       if (!values.dueDate) {
         setFormError("Please set a due date before continuing.");
+        return false;
+      }
+      if (values.dueDate < values.invoiceDate) {
+        setFormError("Due date cannot be before the invoice date.");
         return false;
       }
       if (!values.currency.trim()) {
@@ -328,28 +397,53 @@ export function InvoiceForm({
 
       {step === 1 ? (
         <Surface>
-          <FormSection title="Invoice details" description="When should this invoice be paid?">
+          <FormSection title="Invoice details" description="Set when this invoice is issued and when payment is due.">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Invoice date" htmlFor="invoice-date" required hint="Defaults to today.">
                 <TextInput
                   id="invoice-date"
                   type="date"
                   value={values.invoiceDate}
-                  onChange={(event) => update("invoiceDate", event.target.value)}
+                  onChange={(event) => updateInvoiceDate(event.target.value)}
                   required
                 />
+              </Field>
+              <Field
+                label="Payment terms"
+                htmlFor="invoice-payment-terms"
+                required
+                hint="Choose standard terms or pick a custom due date."
+              >
+                <SelectInput
+                  id="invoice-payment-terms"
+                  value={paymentTerm}
+                  onChange={(event) =>
+                    updatePaymentTerm(event.target.value as PaymentTermValue)
+                  }
+                >
+                  {PAYMENT_TERM_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </SelectInput>
               </Field>
               <Field
                 label="Due date"
                 htmlFor="invoice-due"
                 required
-                hint="When the customer should pay. Defaults to 14 days from today."
+                hint={
+                  paymentTerm === "custom"
+                    ? "Pick any due date on or after the invoice date."
+                    : "Calculated from your payment terms. Switch to Custom date to override."
+                }
               >
                 <TextInput
                   id="invoice-due"
                   type="date"
                   value={values.dueDate}
-                  onChange={(event) => update("dueDate", event.target.value)}
+                  min={values.invoiceDate}
+                  onChange={(event) => updateDueDate(event.target.value)}
                   required
                 />
               </Field>

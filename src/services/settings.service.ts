@@ -66,6 +66,7 @@ export type InvoiceAddressSettings = {
 export type InvoiceSettings = {
   organizationId: string;
   organizationName: string;
+  companyName: string;
   logoUrl: string | null;
   hasLogo: boolean;
   currency: string;
@@ -86,6 +87,7 @@ export async function getInvoiceSettings(): Promise<InvoiceSettings> {
 }
 
 export async function saveInvoiceSettings(input: {
+  companyName?: string;
   currency: string;
   language: string;
   address: InvoiceAddressSettings;

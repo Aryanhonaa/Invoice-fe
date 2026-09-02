@@ -67,6 +67,9 @@ export function InvoiceSettingsPage() {
     setSaving(true);
     try {
       const saved = await saveInvoiceSettings({
+        ...(canManageLogo
+          ? { companyName: (settings.companyName ?? settings.organizationName).trim() }
+          : {}),
         currency: settings.currency,
         language: settings.language,
         address: settings.address,
@@ -162,6 +165,24 @@ export function InvoiceSettingsPage() {
                   Remove
                 </Button>
               ) : null}
+            </div>
+            <div className="mt-5 max-w-md">
+              <Field
+                label="Company name"
+                htmlFor="invoice-company-name"
+                hint="Shown on invoice PDFs, emails, and the customer invoice page."
+                required
+              >
+                <TextInput
+                  id="invoice-company-name"
+                  value={settings.companyName ?? settings.organizationName ?? ""}
+                  onChange={(event) =>
+                    setSettings({ ...settings, companyName: event.target.value })
+                  }
+                  placeholder="Your company name"
+                  required
+                />
+              </Field>
             </div>
           </section>
           ) : null}

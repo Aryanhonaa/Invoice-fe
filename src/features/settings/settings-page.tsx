@@ -7,7 +7,6 @@ import { ROLE_LABELS } from "@/config/navigation";
 import { ApiError } from "@/lib/api/types";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
-import { useWorkspace } from "@/providers/workspace-provider";
 import {
   getOrganizationSettings,
   removeOrganizationLogo,
@@ -17,7 +16,6 @@ import {
 
 export function SettingsPage() {
   const { user, loading } = useAuth();
-  const { scopeLabel } = useWorkspace();
   const { notify } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,10 +173,27 @@ export function SettingsPage() {
             <dt className="text-xs uppercase tracking-wide text-muted">Role</dt>
             <dd className="mt-1 text-sm">{ROLE_LABELS[user.role]}</dd>
           </div>
-          {user.role !== "SUPER_ADMIN" ? (
+          {user.role === "ADMIN" ? (
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Workspace</dt>
-              <dd className="mt-1 text-sm">{scopeLabel}</dd>
+              <dd className="mt-1 text-sm">My members</dd>
+            </div>
+          ) : null}
+          {user.role === "MEMBER" ? (
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Added by</dt>
+              <dd className="mt-1 text-sm">
+                {user.administrator ? (
+                  <>
+                    <span className="font-medium text-foreground">
+                      {user.administrator.firstName} {user.administrator.lastName}
+                    </span>
+                    <span className="block text-muted">{user.administrator.email}</span>
+                  </>
+                ) : (
+                  "—"
+                )}
+              </dd>
             </div>
           ) : null}
         </dl>
