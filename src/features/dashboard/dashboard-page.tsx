@@ -157,7 +157,7 @@ export function DashboardPage() {
               onDateToChange={setDateTo}
             />
             {canCreateInvoice ? (
-              <Link href="/invoices/new">
+              <Link href="/invoices/new" className="inline-flex">
                 <Button>Create invoice</Button>
               </Link>
             ) : null}

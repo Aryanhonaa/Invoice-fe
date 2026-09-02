@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { InvoiceActivityChart, InvoiceStatusChart, RevenueChart } from "@/components/charts";
 import { Button } from "@/components/ui/button";
 import { DataTable, Table, Td, Th, THead } from "@/components/ui/data-table";
-import { Field, SelectInput } from "@/components/ui/field";
+import { SelectInput } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { CardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -122,11 +122,15 @@ export function SuperAdminDashboardSection({
         title="Company Overview"
         description="Monitor organization activity, invoices, revenue, and team performance."
         actions={
-          <div className="flex flex-wrap items-end gap-3">
+          <>
             {currencies.length > 1 ? (
-              <Field label="Currency" htmlFor="dashboard-currency">
-                <SelectInput
+              <div className="inline-flex shrink-0 items-center gap-2">
+                <label htmlFor="dashboard-currency" className="whitespace-nowrap text-sm font-medium leading-none text-foreground">
+                  Currency
+                </label>
+                <select
                   id="dashboard-currency"
+                  className="box-border h-9 w-max shrink-0 rounded-[8px] border border-border bg-surface px-3 text-sm leading-none text-foreground outline-none"
                   value={selectedCurrency}
                   onChange={(event) => setCurrency(event.target.value)}
                 >
@@ -135,8 +139,8 @@ export function SuperAdminDashboardSection({
                       {code}
                     </option>
                   ))}
-                </SelectInput>
-              </Field>
+                </select>
+              </div>
             ) : null}
             <DateRangeFilter
               preset={preset}
@@ -146,7 +150,7 @@ export function SuperAdminDashboardSection({
               onDateFromChange={onDateFromChange}
               onDateToChange={onDateToChange}
             />
-          </div>
+          </>
         }
       />
 

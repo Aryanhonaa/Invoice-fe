@@ -74,7 +74,7 @@ export function AdminDashboardSection({
         title="Office reports"
         description={`${scopeLabel}. Performance for members and business data in your office.`}
         actions={
-          <div className="flex flex-wrap items-end gap-3">
+          <>
             <DateRangeFilter
               preset={preset}
               dateFrom={dateFrom}
@@ -84,11 +84,11 @@ export function AdminDashboardSection({
               onDateToChange={onDateToChange}
             />
             {canCreateMember ? (
-              <Link href="/members">
+              <Link href="/members" className="inline-flex">
                 <Button>Add member</Button>
               </Link>
             ) : null}
-          </div>
+          </>
         }
       />
 

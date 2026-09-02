@@ -24,6 +24,7 @@ export interface NavItem {
 export interface NavGroup {
   id: string;
   label: string | null;
+  collapsible?: boolean;
   items: NavItem[];
 }
 
@@ -41,6 +42,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "sa-settings",
     label: "Settings",
+    collapsible: true,
     items: [
       { href: "/settings/invoice", label: "Invoice Settings", roles: ["SUPER_ADMIN"], match: "prefix", icon: "invoice", permission: "SETTINGS_VIEW" },
       { href: "/settings/templates", label: "Templates", roles: ["SUPER_ADMIN"], match: "prefix", icon: "settings", permission: "SETTINGS_VIEW" },
