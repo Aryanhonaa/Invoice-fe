@@ -165,7 +165,7 @@ export function DashboardPage() {
         }
       />
 
-      {canCreateInvoice ? <OnboardingCard /> : null}
+      {canCreateInvoice && user.role !== "SUPER_ADMIN" ? <OnboardingCard /> : null}
 
       <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
         <RevenueChart
