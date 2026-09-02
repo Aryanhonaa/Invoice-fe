@@ -235,40 +235,42 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
       )}
 
       <form
-        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
+        className="flex w-full flex-wrap items-end gap-6 rounded-2xl border border-border bg-surface p-4"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
           void load();
         }}
       >
-        <Field label="Search" htmlFor="admin-search">
-          <TextInput
-            id="admin-search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search name or email"
-          />
-        </Field>
-        <Field label="Status" htmlFor="admin-status">
-          <SelectInput
-            id="admin-status"
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as AccountStatus | "");
-              setPage(1);
-            }}
-          >
-            <option value="">All statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-          </SelectInput>
-        </Field>
-        <div className="flex items-end">
-          <Button type="submit" variant="secondary" className="w-full">
-            Apply filters
-          </Button>
+        <div className="w-64 max-w-full">
+          <Field label="Search" htmlFor="admin-search">
+            <TextInput
+              id="admin-search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search administrators"
+            />
+          </Field>
         </div>
+        <div className="w-40">
+          <Field label="Status" htmlFor="admin-status">
+            <SelectInput
+              id="admin-status"
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value as AccountStatus | "");
+                setPage(1);
+              }}
+            >
+              <option value="">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </SelectInput>
+          </Field>
+        </div>
+        <Button type="submit" variant="secondary">
+          Apply filters
+        </Button>
       </form>
 
       {loading ? (
