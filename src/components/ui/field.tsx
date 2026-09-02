@@ -51,6 +51,24 @@ export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInput
   return <input className={cn(controlClass, className)} {...props} />;
 }
 
+export function PhoneInput({
+  onChange,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <TextInput
+      {...props}
+      type="tel"
+      inputMode="numeric"
+      autoComplete="tel"
+      onChange={(event) => {
+        event.target.value = event.target.value.replace(/\D/g, "");
+        onChange?.(event);
+      }}
+    />
+  );
+}
+
 export function PasswordInput({
   className,
   ...props
