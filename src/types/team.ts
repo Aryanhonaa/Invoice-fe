@@ -23,5 +23,4 @@ export interface TeamListResult {
 export interface TeamFormValues {
   name: string;
   description: string;
-  organizationId: string;
 }

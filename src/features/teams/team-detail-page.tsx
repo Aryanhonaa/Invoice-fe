@@ -30,6 +30,7 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
   const { user } = useAuth();
   const { notify } = useToast();
   const canManage = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const canAssignMembers = user?.role === "ADMIN";
 
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<MemberUser[]>([]);
@@ -52,7 +53,7 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
       const [teamData, teamMembers] = await Promise.all([getTeam(teamId), listTeamMembers(teamId)]);
       setTeam(teamData);
       setMembers(teamMembers);
-      if (canManage) {
+      if (canAssignMembers) {
         const pool = await listMembers({
           organizationId: teamData.organizationId,
           status: "ACTIVE",
@@ -66,7 +67,7 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
     } finally {
       setLoading(false);
     }
-  }, [canManage, teamId]);
+  }, [canAssignMembers, teamId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,7 +195,7 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">Team members</h3>
-          {canManage ? (
+          {canAssignMembers ? (
             <Button onClick={() => setAssignOpen(true)} disabled={!team.isActive}>
               Assign member
             </Button>
@@ -212,7 +213,7 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Email</th>
                   <th className="px-4 py-3 font-medium">Status</th>
-                  {canManage ? <th className="px-4 py-3 font-medium">Actions</th> : null}
+                  {canAssignMembers ? <th className="px-4 py-3 font-medium">Actions</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -233,7 +234,7 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
                     <td className="px-4 py-3 text-muted">
                       {member.status === "ACTIVE" ? "Active" : "Inactive"}
                     </td>
-                    {canManage ? (
+                    {canAssignMembers ? (
                       <td className="px-4 py-3">
                         <Button variant="dangerSoft" size="sm" onClick={() => setRemoveTarget(member)}>
                           Remove
@@ -255,7 +256,6 @@ export function TeamDetailPage({ teamId }: TeamDetailPageProps) {
           initialValues={{
             name: team.name,
             description: team.description ?? "",
-            organizationId: team.organizationId,
           }}
           busy={formBusy}
           onClose={() => setEditing(false)}

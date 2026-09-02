@@ -25,7 +25,6 @@ export const memberFormSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: z.string().trim().min(1, "Last name is required"),
   email: z.string().trim().email("Enter a valid email"),
-  phone: z.string().trim().optional(),
   organizationId: z.string().optional(),
   temporaryPassword: z
     .string()
@@ -33,5 +32,5 @@ export const memberFormSchema = z.object({
       message: "Temporary password must be at least 8 characters",
     }),
   status: z.enum(["ACTIVE", "INACTIVE"]),
-  teamIds: z.array(z.string()),
+  teamIds: z.array(z.string()).min(1, "Assign the member to one of your teams"),
 });

@@ -36,6 +36,15 @@ export const organizationFormSchema = z.object({
 
 export const adminUserSchema = publicUserSchema.extend({
   organization: organizationSummarySchema.nullable(),
+  teams: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        isActive: z.boolean(),
+      }),
+    )
+    .default([]),
 });
 
 export const adminListResultSchema = z.object({
@@ -50,6 +59,7 @@ export const createAdminFormSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: z.string().trim().min(1, "Last name is required"),
   email: z.string().trim().email("Enter a valid email"),
-  teamId: z.string().min(1, "Team is required"),
+  teamId: z.string().optional(),
+  teamIds: z.array(z.string()).optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });

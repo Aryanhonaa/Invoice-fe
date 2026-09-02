@@ -16,12 +16,15 @@ import { TeamForm } from "@/features/teams/team-form";
 import { ApiError } from "@/lib/api/types";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { createTeam, listTeams, updateTeam, updateTeamStatus } from "@/services/teams.service";
 import type { Team, TeamFormValues, TeamListResult } from "@/types/team";
 
 export function TeamsPage() {
   const { user } = useAuth();
   const { notify } = useToast();
+  const { refresh } = useWorkspace();
+  const canCreate = user?.role === "ADMIN";
   const canManage = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
   const [result, setResult] = useState<TeamListResult | null>(null);
@@ -73,7 +76,7 @@ export function TeamsPage() {
       await createTeam(values);
       setFormMode(null);
       notify("Team created.");
-      await load();
+      await Promise.all([load(), refresh()]);
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to create team.", "error");
     } finally {
@@ -118,7 +121,7 @@ export function TeamsPage() {
       <PageHeader
         title="Teams"
         description="Organize members into working groups."
-        actions={canManage ? <Button onClick={() => setFormMode("create")}>Create team</Button> : undefined}
+        actions={canCreate ? <Button onClick={() => setFormMode("create")}>Create team</Button> : undefined}
       />
 
       <form
@@ -165,8 +168,12 @@ export function TeamsPage() {
       ) : !result || result.items.length === 0 ? (
         <EmptyState
           title="No teams yet"
-          description="Create a team to start assigning members."
-          action={canManage ? <Button onClick={() => setFormMode("create")}>Create team</Button> : null}
+          description={
+            canCreate
+              ? "Create a team to start assigning members."
+              : "Administrators create teams for their own members."
+          }
+          action={canCreate ? <Button onClick={() => setFormMode("create")}>Create team</Button> : null}
         />
       ) : (
         <DataTable
@@ -237,7 +244,6 @@ export function TeamsPage() {
           initialValues={{
             name: editing.name,
             description: editing.description ?? "",
-            organizationId: editing.organizationId,
           }}
           busy={formBusy}
           onClose={() => {

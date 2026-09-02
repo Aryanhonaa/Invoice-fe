@@ -174,37 +174,6 @@ export function DashboardPage() {
 
       {canCreateInvoice ? <OnboardingCard /> : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Revenue"
-          value={formatMoney(metrics.revenue, currency)}
-          hint="Received customer payments"
-        />
-        <StatCard
-          label="Accounts receivable"
-          value={formatMoney(metrics.outstandingBalance, currency)}
-          hint="Customers still owe this amount"
-        />
-        <StatCard
-          label="Received payments"
-          value={formatMoney(metrics.paidAmount, currency)}
-          hint="Completed payments in this period"
-          tone="success"
-        />
-        <StatCard
-          label="Overdue receivables"
-          value={formatMoney(metrics.overdueAmount, currency)}
-          hint={`${metrics.overdueInvoices} invoice${metrics.overdueInvoices === 1 ? "" : "s"} past due`}
-          tone={metrics.overdueInvoices > 0 ? "warning" : "default"}
-        />
-        {isAdmin ? (
-          <StatCard
-            label="Expenses"
-            value={formatMoney(metrics.expenses, currency)}
-            hint="Recorded in this period"
-          />
-        ) : null}
-      </div>
 
       {isAdmin ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

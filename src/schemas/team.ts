@@ -24,5 +24,4 @@ export const teamListResultSchema = z.object({
 export const teamFormSchema = z.object({
   name: z.string().trim().min(1, "Team name is required"),
   description: z.string().trim().optional(),
-  organizationId: z.string().optional(),
 });

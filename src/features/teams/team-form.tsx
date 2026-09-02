@@ -27,7 +27,6 @@ export function TeamForm({
   const [values, setValues] = useState<TeamFormValues>({
     name: initialValues?.name ?? "",
     description: initialValues?.description ?? "",
-    organizationId: initialValues?.organizationId ?? "",
   });
   const [error, setError] = useState<string | null>(null);
 

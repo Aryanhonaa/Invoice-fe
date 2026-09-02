@@ -23,7 +23,6 @@ const emptyValues: MemberFormValues = {
   firstName: "",
   lastName: "",
   email: "",
-  phone: "",
   organizationId: "",
   temporaryPassword: "",
   status: "ACTIVE",
@@ -114,7 +113,6 @@ export function MemberForm({
     setFormError(null);
     await onSubmit({
       ...parsed.data,
-      phone: parsed.data.phone ?? "",
       organizationId: values.organizationId,
       teamIds: values.teamIds,
     });
@@ -163,14 +161,6 @@ export function MemberForm({
             required
           />
         </Field>
-        <Field label="Phone" htmlFor="member-phone" error={errors.phone}>
-          <TextInput
-            id="member-phone"
-            type="tel"
-            value={values.phone}
-            onChange={(event) => update("phone", event.target.value)}
-          />
-        </Field>
         {mode === "create" ? (
           <>
             <Field
@@ -202,7 +192,9 @@ export function MemberForm({
               </SelectInput>
             </Field>
             <fieldset>
-              <legend className="mb-2 text-sm font-medium text-foreground">Assign to teams</legend>
+              <legend className="mb-2 text-sm font-medium text-foreground">
+                Assign to one of your teams <span className="text-red-600">*</span>
+              </legend>
               {teamsLoading ? (
                 <p className="text-sm text-muted">Loading teams…</p>
               ) : teams.length === 0 ? (
@@ -218,9 +210,10 @@ export function MemberForm({
                       />
                       {team.name}
                     </label>
-                  ))}
+                    ))}
                 </div>
               )}
+              {errors.teamIds ? <p className="mt-1 text-sm text-red-700">{errors.teamIds}</p> : null}
             </fieldset>
           </>
         ) : null}
@@ -239,7 +232,6 @@ export function valuesFromMember(member: MemberUser): MemberFormValues {
     firstName: member.firstName,
     lastName: member.lastName,
     email: member.email,
-    phone: member.phone ?? "",
     organizationId: member.organizationId ?? "",
     temporaryPassword: "",
     status: member.status,

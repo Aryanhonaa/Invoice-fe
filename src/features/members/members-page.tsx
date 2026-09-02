@@ -34,6 +34,7 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
   const { organizationId, teamId: workspaceTeamId, tenantListsReady, scopeLabel } =
     useWorkspace();
   const canManage = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const canCreate = user?.role === "ADMIN";
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
   const [result, setResult] = useState<MemberListResult | null>(null);
@@ -168,13 +169,15 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         <PageHeader
           title="Members"
           description={`People who can create and work on invoices. ${scopeLabel}.`}
-          actions={<Button onClick={() => setFormMode("create")}>Add member</Button>}
+          actions={
+            canCreate ? <Button onClick={() => setFormMode("create")}>Add member</Button> : undefined
+          }
         />
-      ) : (
+      ) : canCreate ? (
         <div className="flex justify-end">
           <Button onClick={() => setFormMode("create")}>Add member</Button>
         </div>
-      )}
+      ) : null}
 
       <form
         className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
@@ -221,7 +224,9 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         <EmptyState
           title="No members yet"
           description="Add a member so they can work with invoices."
-          action={<Button onClick={() => setFormMode("create")}>Add member</Button>}
+          action={
+            canCreate ? <Button onClick={() => setFormMode("create")}>Add member</Button> : null
+          }
         />
       ) : (
         <DataTable

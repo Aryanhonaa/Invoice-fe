@@ -20,8 +20,15 @@ export interface OrganizationSummary {
   invoiceCount?: number;
 }
 
+export interface AdminTeamSummary {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
 export interface AdminUser extends PublicUser {
   organization: OrganizationSummary | null;
+  teams: AdminTeamSummary[];
 }
 
 export interface AdminListResult {
@@ -47,6 +54,7 @@ export interface AdminFormValues {
   phone: string;
   organizationId: string;
   teamId: string;
+  teamIds: string[];
   temporaryPassword: string;
   status: AccountStatus;
 }

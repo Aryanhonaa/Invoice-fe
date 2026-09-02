@@ -22,12 +22,11 @@ import { useToast } from "@/providers/toast-provider";
 import {
   createAdmin,
   listAdmins,
+  resetAdminPassword,
   updateAdmin,
   updateAdminStatus,
 } from "@/services/admins.service";
-import { listTeams } from "@/services/teams.service";
 import type { AdminFormValues, AdminListResult, AdminUser } from "@/types/admin";
-import type { Team } from "@/types/team";
 import type { AccountStatus } from "@/types/auth";
 
 export function AdministratorsPage({ embedded = false }: { embedded?: boolean }) {
@@ -36,7 +35,6 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   const { notify } = useToast();
 
   const [result, setResult] = useState<AdminListResult | null>(null);
-  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -45,25 +43,23 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [formBusy, setFormBusy] = useState(false);
-  const [statusTarget, setStatusTarget] = useState<AdminUser | null>(null);
+  const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [generatedEmail, setGeneratedEmail] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [admins, teamList] = await Promise.all([
-        listAdmins({
-          search: search || undefined,
-          status,
-          page,
-          pageSize: 10,
-        }),
-        listTeams({ status: "ACTIVE", pageSize: 50 }),
-      ]);
+      const admins = await listAdmins({
+        search: search || undefined,
+        status,
+        page,
+        pageSize: 10,
+      });
       setResult(admins);
-      setTeams(teamList.items);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load administrators.");
     } finally {
@@ -101,6 +97,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
       const created = await createAdmin(values);
       setFormMode(null);
       setGeneratedPassword(created.temporaryPassword);
+      setGeneratedEmail(created.user.email);
       notify("Administrator added.");
       await load();
     } catch (err) {
@@ -119,6 +116,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
       await updateAdmin(editing.id, values);
       setFormMode(null);
       setEditing(null);
+      setSelectedAdmin(null);
       notify("Administrator updated.");
       await load();
     } catch (err) {
@@ -129,20 +127,33 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   }
 
   async function handleStatusChange() {
-    if (!statusTarget) {
+    if (!selectedAdmin) {
       return;
     }
     setStatusBusy(true);
-    const nextStatus = statusTarget.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const nextStatus = selectedAdmin.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
-      await updateAdminStatus(statusTarget.id, nextStatus);
-      setStatusTarget(null);
+      await updateAdminStatus(selectedAdmin.id, nextStatus);
       notify(nextStatus === "ACTIVE" ? "Administrator activated" : "Administrator deactivated");
       await load();
+      setSelectedAdmin(null);
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to update status.", "error");
     } finally {
       setStatusBusy(false);
+    }
+  }
+
+  async function handleResendCredentials() {
+    if (!selectedAdmin) {
+      return;
+    }
+    try {
+      const result = await resetAdminPassword(selectedAdmin.id);
+      setGeneratedPassword(result.temporaryPassword);
+      setGeneratedEmail(selectedAdmin.email);
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Unable to reset password.", "error");
     }
   }
 
@@ -209,18 +220,8 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
       ) : !result || result.items.length === 0 ? (
         <EmptyState
           title="No administrators yet"
-          description={
-            teams.length === 0
-              ? "Create a team first, then add an administrator for that team."
-              : "Add an administrator to manage a team."
-          }
-          action={
-            teams.length === 0 ? (
-              <Button onClick={() => router.push("/teams")}>Create team</Button>
-            ) : (
-              <Button onClick={() => setFormMode("create")}>Add administrator</Button>
-            )
-          }
+          description="Add an administrator. They will create their own teams and members."
+          action={<Button onClick={() => setFormMode("create")}>Add administrator</Button>}
         />
       ) : (
         <DataTable
@@ -231,39 +232,43 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
               <tr>
                 <Th>Name</Th>
                 <Th>Email</Th>
+                <Th>Teams</Th>
                 <Th>Status</Th>
                 <Th className="text-right">Actions</Th>
               </tr>
             </THead>
             <tbody>
               {result.items.map((admin) => (
-                <tr key={admin.id} className="border-t border-border hover:bg-muted-soft">
+                <tr
+                  key={admin.id}
+                  className="cursor-pointer border-t border-border hover:bg-muted-soft"
+                  onClick={() => setSelectedAdmin(admin)}
+                >
                   <Td>
                     <span className="font-medium">
                       {admin.firstName} {admin.lastName}
                     </span>
                   </Td>
                   <Td muted>{admin.email}</Td>
+                  <Td muted>
+                    {admin.teams.length > 0
+                      ? admin.teams.map((team) => team.name).join(", ")
+                      : "—"}
+                  </Td>
                   <Td>
                     <StatusBadge status={admin.status} />
                   </Td>
                   <Td className="text-right">
-                    <DropdownMenu
-                      items={[
-                        {
-                          label: "Edit",
-                          onClick: () => {
-                            setEditing(admin);
-                            setFormMode("edit");
-                          },
-                        },
-                        {
-                          label: admin.status === "ACTIVE" ? "Deactivate" : "Activate",
-                          onClick: () => setStatusTarget(admin),
-                          danger: admin.status === "ACTIVE",
-                        },
-                      ]}
-                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedAdmin(admin);
+                      }}
+                    >
+                      View
+                    </Button>
                   </Td>
                 </tr>
               ))}
@@ -276,7 +281,6 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         <AdministratorForm
           title="Add administrator"
           mode="create"
-          teams={teams}
           busy={formBusy}
           onClose={() => setFormMode(null)}
           onSubmit={handleCreate}
@@ -297,30 +301,148 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         />
       ) : null}
 
-      {statusTarget ? (
-        <ConfirmDialog
-          title={statusTarget.status === "ACTIVE" ? "Deactivate administrator" : "Activate administrator"}
-          message={
-            statusTarget.status === "ACTIVE"
-              ? `${statusTarget.firstName} ${statusTarget.lastName} will no longer be able to sign in.`
-              : `${statusTarget.firstName} ${statusTarget.lastName} will be able to sign in again.`
+      {selectedAdmin && !formMode ? (
+        <Dialog
+          title={`${selectedAdmin.firstName} ${selectedAdmin.lastName}`}
+          onClose={() => setSelectedAdmin(null)}
+          footer={
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setSelectedAdmin(null)}
+                disabled={formBusy || statusBusy}
+              >
+                Close
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => void handleResendCredentials()}
+                disabled={formBusy || statusBusy}
+              >
+                Resend credentials
+              </Button>
+              <Button
+                variant={selectedAdmin.status === "ACTIVE" ? "danger" : "primary"}
+                onClick={() => void handleStatusChange()}
+                disabled={formBusy || statusBusy}
+              >
+                {statusBusy ? "Updating…" : selectedAdmin.status === "ACTIVE" ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditing(selectedAdmin);
+                  setFormMode("edit");
+                }}
+                disabled={formBusy || statusBusy}
+              >
+                Edit
+              </Button>
+            </div>
           }
-          confirmLabel={statusTarget.status === "ACTIVE" ? "Deactivate" : "Activate"}
-          danger={statusTarget.status === "ACTIVE"}
-          busy={statusBusy}
-          onCancel={() => setStatusTarget(null)}
-          onConfirm={() => void handleStatusChange()}
-        />
+        >
+          <div className="space-y-4">
+            <div className="grid gap-3">
+              <div>
+                <p className="text-xs font-medium text-slate-500">Email</p>
+                <p className="text-sm text-foreground">{selectedAdmin.email}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">Teams</p>
+                <p className="text-sm text-foreground">
+                  {selectedAdmin.teams.length > 0
+                    ? selectedAdmin.teams.map((team) => team.name).join(", ")
+                    : "None"}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">Status</p>
+                  <p className="mt-1">
+                    <StatusBadge status={selectedAdmin.status} />
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Dialog>
       ) : null}
 
       {generatedPassword ? (
-        <Dialog title="Temporary password" onClose={() => setGeneratedPassword(null)}>
-          <p className="text-sm text-muted">
-            Share this password now. It is not stored in plain text and will not be shown again.
-          </p>
-          <p className="mt-4 rounded-lg bg-muted-soft px-3 py-2 font-mono text-sm break-all">
-            {generatedPassword}
-          </p>
+        <Dialog
+          title="Administrator credentials"
+          onClose={() => {
+            setGeneratedPassword(null);
+            setGeneratedEmail(null);
+            setShowPassword(false);
+          }}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-muted">
+              Share these credentials. The password is not stored in plain text and will not be shown again.
+            </p>
+
+            {generatedEmail ? (
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted">Email / Username</p>
+                <div className="flex gap-2">
+                  <p className="flex-1 break-all rounded-lg bg-muted-soft px-3 py-2 font-mono text-sm">
+                    {generatedEmail}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedEmail);
+                      notify("Email copied.");
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted">Temporary Password</p>
+              <div className="flex gap-2">
+                <p className="flex-1 break-all rounded-lg bg-muted-soft px-3 py-2 font-mono text-sm">
+                  {showPassword ? generatedPassword : "•".repeat(Math.min(generatedPassword?.length ?? 0, 20))}
+                </p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? "Hide" : "View"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPassword);
+                    notify("Password copied.");
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  const text = `Email: ${generatedEmail}\nPassword: ${generatedPassword}`;
+                  navigator.clipboard.writeText(text);
+                  notify("Credentials copied.");
+                }}
+              >
+                Copy both
+              </Button>
+            </div>
+          </div>
         </Dialog>
       ) : null}
     </div>

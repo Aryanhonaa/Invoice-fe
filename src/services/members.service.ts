@@ -38,7 +38,6 @@ export async function createMember(values: MemberFormValues): Promise<{
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
-        phone: values.phone || undefined,
         organizationId: values.organizationId || undefined,
         temporaryPassword: values.temporaryPassword || undefined,
         status: values.status,
@@ -55,7 +54,7 @@ export async function createMember(values: MemberFormValues): Promise<{
 
 export async function updateMember(
   id: string,
-  values: Pick<MemberFormValues, "firstName" | "lastName" | "email" | "phone">,
+  values: Pick<MemberFormValues, "firstName" | "lastName" | "email">,
 ): Promise<MemberUser> {
   const data = await apiRequest<{ user: MemberUser }>(`/api/members/${id}`, {
     method: "PATCH",
@@ -63,7 +62,6 @@ export async function updateMember(
       firstName: values.firstName,
       lastName: values.lastName,
       email: values.email,
-      phone: values.phone || null,
     }),
   });
   return memberUserSchema.parse(data.user);

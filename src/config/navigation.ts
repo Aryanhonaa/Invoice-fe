@@ -35,6 +35,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/", label: "Dashboard", roles: ["SUPER_ADMIN"], match: "exact", icon: "home" },
       { href: "/teams", label: "Teams", roles: ["SUPER_ADMIN"], match: "prefix", icon: "team", permission: "TEAMS_VIEW" },
+      { href: "/members", label: "Members", roles: ["SUPER_ADMIN"], match: "prefix", icon: "member", permission: "USERS_VIEW" },
       { href: "/administrators", label: "Administrators", roles: ["SUPER_ADMIN"], match: "prefix", icon: "admin", permission: "ADMINS_VIEW" },
       { href: "/reports", label: "Reports", roles: ["SUPER_ADMIN"], match: "reports", icon: "report", permission: "REPORTS_VIEW" },
       { href: "/settings", label: "Settings", roles: ["SUPER_ADMIN"], match: "prefix", icon: "settings" },
@@ -45,10 +46,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: null,
     items: [
       { href: "/", label: "Dashboard", roles: ["ADMIN"], match: "exact", icon: "home" },
+      { href: "/teams", label: "Teams", roles: ["ADMIN"], match: "prefix", icon: "team", permission: "TEAMS_VIEW" },
       { href: "/members", label: "Members", roles: ["ADMIN"], match: "prefix", icon: "member", permission: "USERS_VIEW" },
-      { href: "/customers", label: "Customers", roles: ["ADMIN"], match: "prefix", icon: "customer", permission: "CUSTOMERS_VIEW" },
-      { href: "/invoices", label: "Invoices", roles: ["ADMIN"], match: "prefix", icon: "invoice", permission: "INVOICES_VIEW" },
-      { href: "/payments", label: "Payments", roles: ["ADMIN"], match: "prefix", icon: "payment", permission: "PAYMENTS_VIEW" },
       { href: "/reports", label: "Reports", roles: ["ADMIN"], match: "reports", icon: "report", permission: "REPORTS_VIEW" },
       { href: "/settings", label: "Settings", roles: ["ADMIN"], match: "prefix", icon: "settings" },
     ],
@@ -76,6 +75,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 export const SUPER_ADMIN_PATH_PREFIXES = [
   "/",
   "/teams",
+  "/members",
   "/administrators",
   "/reports",
   "/settings",

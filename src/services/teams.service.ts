@@ -32,7 +32,6 @@ export async function createTeam(values: TeamFormValues): Promise<Team> {
     body: JSON.stringify({
       name: values.name,
       description: values.description || undefined,
-      organizationId: values.organizationId || undefined,
     }),
   });
   return teamSchema.parse(data.team);

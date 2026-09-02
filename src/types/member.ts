@@ -24,7 +24,6 @@ export interface MemberFormValues {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
   organizationId: string;
   temporaryPassword: string;
   status: AccountStatus;

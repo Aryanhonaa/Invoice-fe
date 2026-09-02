@@ -38,7 +38,6 @@ export async function createAdmin(values: AdminFormValues): Promise<{
       firstName: values.firstName,
       lastName: values.lastName,
       email: values.email,
-      teamId: values.teamId,
       status: values.status,
     }),
   });
@@ -73,4 +72,12 @@ export async function updateAdminStatus(id: string, status: AccountStatus): Prom
   });
 
   return adminUserSchema.parse(data.user);
+}
+
+export async function resetAdminPassword(id: string): Promise<{ temporaryPassword: string }> {
+  const data = await apiRequest<{ temporaryPassword: string }>(`/api/admins/${id}/password`, {
+    method: "POST",
+  });
+
+  return data;
 }

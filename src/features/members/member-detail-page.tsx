@@ -25,6 +25,7 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
   const router = useRouter();
   const { notify } = useToast();
   const canManage = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const canAssignTeams = user?.role === "ADMIN";
 
   const [member, setMember] = useState<MemberUser | null>(null);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
@@ -203,18 +204,16 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
             {member.status === "ACTIVE" ? "Active" : "Inactive"}
           </p>
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted">Phone</p>
-          <p className="mt-1 text-sm font-medium text-foreground">{member.phone ?? "—"}</p>
-        </div>
       </section>
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">Teams</h3>
-          <Button onClick={() => setAssignOpen(true)} disabled={member.status !== "ACTIVE"}>
-            Assign to team
-          </Button>
+          {canAssignTeams ? (
+            <Button onClick={() => setAssignOpen(true)} disabled={member.status !== "ACTIVE"}>
+              Assign to team
+            </Button>
+          ) : null}
         </div>
         {member.teams.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted">
@@ -242,9 +241,13 @@ export function MemberDetailPage({ memberId }: MemberDetailPageProps) {
                       {team.isActive ? "Active" : "Inactive"}
                     </td>
                     <td className="px-4 py-3">
-                      <Button variant="dangerSoft" size="sm" onClick={() => setRemoveTarget(team)}>
-                        Remove
-                      </Button>
+                      {canAssignTeams ? (
+                        <Button variant="dangerSoft" size="sm" onClick={() => setRemoveTarget(team)}>
+                          Remove
+                        </Button>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   </tr>
                 ))}
