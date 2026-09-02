@@ -48,26 +48,46 @@ interface MemberPasswordCellProps {
   password: string | null;
   copying?: boolean;
   onCopy: () => void | Promise<void>;
+  onReveal?: () => void | Promise<void>;
 }
 
-export function MemberPasswordCell({ password, copying = false, onCopy }: MemberPasswordCellProps) {
+export function MemberPasswordCell({
+  password,
+  copying = false,
+  onCopy,
+  onReveal,
+}: MemberPasswordCellProps) {
   const [visible, setVisible] = useState(false);
+
+  async function toggleVisibility() {
+    if (password) {
+      setVisible((current) => !current);
+      return;
+    }
+    if (!onReveal) {
+      return;
+    }
+    await onReveal();
+    setVisible(true);
+  }
 
   return (
     <div className="flex items-center gap-1.5">
       <span className="font-mono text-sm text-foreground">
-        {password ? (visible ? password : "••••••••") : "••••••••"}
+        {password && visible ? password : "••••••••"}
       </span>
-      {password ? (
-        <button
-          type="button"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-muted-soft hover:text-foreground"
-          aria-label={visible ? "Hide password" : "Show password"}
-          onClick={() => setVisible((current) => !current)}
-        >
-          {visible ? <EyeOffIcon /> : <EyeIcon />}
-        </button>
-      ) : null}
+      <button
+        type="button"
+        className={cn(
+          "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-muted-soft hover:text-foreground",
+          copying && "cursor-wait opacity-60",
+        )}
+        aria-label={visible ? "Hide password" : "Show password"}
+        disabled={copying}
+        onClick={() => void toggleVisibility()}
+      >
+        {visible ? <EyeOffIcon /> : <EyeIcon />}
+      </button>
       <button
         type="button"
         className={cn(
@@ -75,7 +95,7 @@ export function MemberPasswordCell({ password, copying = false, onCopy }: Member
           copying && "cursor-wait opacity-60",
         )}
         aria-label="Copy password"
-        title={password ? "Copy password" : "Generate a temporary password and copy it"}
+        title="Copy password"
         disabled={copying}
         onClick={() => void onCopy()}
       >

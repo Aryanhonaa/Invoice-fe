@@ -9,6 +9,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Invoice Hub",
   description: "Office invoicing and business management",
+  icons: {
+    icon: "/tablogo.png",
+    shortcut: "/tablogo.png",
+    apple: "/tablogo.png",
+  },
 };
 
 export default function RootLayout({

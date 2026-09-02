@@ -69,7 +69,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         pageSize: 10,
       });
       setResult(admins);
-      setPasswords((current) => ({ ...getCachedAdminPasswords(), ...current }));
+      setPasswords((current) => ({ ...current, ...getCachedAdminPasswords() }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load administrators.");
     } finally {
@@ -106,17 +106,20 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
     setPasswords((current) => ({ ...current, [adminId]: password }));
   }
 
+  async function ensurePassword(admin: AdminUser): Promise<string> {
+    const existing = passwords[admin.id] ?? getCachedAdminPasswords()[admin.id] ?? null;
+    if (existing) {
+      return existing;
+    }
+    const result = await resetAdminPassword(admin.id);
+    rememberPassword(admin.id, result.temporaryPassword);
+    return result.temporaryPassword;
+  }
+
   async function handleCopyPassword(admin: AdminUser) {
     setCopyBusyId(admin.id);
     try {
-      let password = passwords[admin.id] ?? getCachedAdminPasswords()[admin.id] ?? null;
-
-      if (!password) {
-        const result = await resetAdminPassword(admin.id);
-        password = result.temporaryPassword;
-        rememberPassword(admin.id, password);
-      }
-
+      const password = await ensurePassword(admin);
       await copyText(password);
       notify("Password copied");
     } catch (err) {
@@ -126,16 +129,36 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
     }
   }
 
+  async function handleRevealPassword(admin: AdminUser) {
+    if (passwords[admin.id] ?? getCachedAdminPasswords()[admin.id]) {
+      return;
+    }
+    setCopyBusyId(admin.id);
+    try {
+      await ensurePassword(admin);
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Unable to show password.", "error");
+      throw err;
+    } finally {
+      setCopyBusyId(null);
+    }
+  }
+
   async function handleCreate(values: AdminFormValues) {
     setFormBusy(true);
     try {
       const created = await createAdmin(values);
-      if (created.temporaryPassword) {
-        rememberPassword(created.user.id, created.temporaryPassword);
+      const password =
+        created.temporaryPassword ?? (values.temporaryPassword.trim() || null);
+      if (password) {
+        rememberPassword(created.user.id, password);
       }
       setFormMode(null);
       notify("Administrator added.");
       await load();
+      if (password) {
+        rememberPassword(created.user.id, password);
+      }
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to create administrator.", "error");
     } finally {
@@ -286,6 +309,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
                       password={passwords[admin.id] ?? null}
                       copying={copyBusyId === admin.id}
                       onCopy={() => handleCopyPassword(admin)}
+                      onReveal={() => handleRevealPassword(admin)}
                     />
                   </Td>
                   <Td>
