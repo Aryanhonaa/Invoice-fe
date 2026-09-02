@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ActionGroup, DeleteAction, EditAction } from "@/components/ui/action-buttons";
 import { Button } from "@/components/ui/button";
 import { DataTable, Table, Td, Th, THead } from "@/components/ui/data-table";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Field, SelectInput, TextInput } from "@/components/ui/field";
@@ -149,7 +149,7 @@ export function ProductsPage() {
       />
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-4"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -232,10 +232,10 @@ export function ProductsPage() {
             </THead>
             <tbody>
               {result.items.map((product) => (
-                <tr key={product.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={product.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <span className="font-medium">{product.name}</span>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted">
                       {product.kind === "SERVICE" ? "Service" : "Product"}
                       {product.sku ? ` · ${product.sku}` : ""}
                     </p>
@@ -246,18 +246,15 @@ export function ProductsPage() {
                   </Td>
                   {canManage ? (
                     <Td className="text-right">
-                      <DropdownMenu
-                        items={[
-                          {
-                            label: "Edit",
-                            onClick: () => {
-                              setEditing(product);
-                              setFormMode("edit");
-                            },
-                          },
-                          { label: "Delete", onClick: () => setDeleteTarget(product), danger: true },
-                        ]}
-                      />
+                      <ActionGroup>
+                        <EditAction
+                          onClick={() => {
+                            setEditing(product);
+                            setFormMode("edit");
+                          }}
+                        />
+                        <DeleteAction onClick={() => setDeleteTarget(product)} />
+                      </ActionGroup>
                     </Td>
                   ) : null}
                 </tr>

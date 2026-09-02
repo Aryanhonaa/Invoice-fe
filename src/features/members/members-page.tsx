@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ActionGroup, EditAction, StatusAction } from "@/components/ui/action-buttons";
 import { Button } from "@/components/ui/button";
 import { DataTable, Table, Td, Th, THead } from "@/components/ui/data-table";
-import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Field, SelectInput, TextInput } from "@/components/ui/field";
@@ -14,16 +14,23 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MemberForm, valuesFromMember } from "@/features/members/member-form";
+import { MemberPasswordCell } from "@/features/members/member-password-cell";
 import { ApiError } from "@/lib/api/types";
+import {
+  getCachedMemberPasswords,
+  setCachedMemberPassword,
+} from "@/lib/member-password-cache";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
   createMember,
   listMembers,
+  resetMemberPassword,
   updateMember,
   updateMemberStatus,
 } from "@/services/members.service";
+import { copyText } from "@/lib/copy-text";
 import type { AccountStatus } from "@/types/auth";
 import type { MemberFormValues, MemberListResult, MemberUser } from "@/types/member";
 
@@ -31,12 +38,13 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { notify } = useToast();
-  const { organizationId, teamId: workspaceTeamId, tenantListsReady, scopeLabel } =
-    useWorkspace();
+  const { organizationId, tenantListsReady, scopeLabel } = useWorkspace();
   const canManage = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const canCreate = user?.role === "ADMIN";
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
   const [result, setResult] = useState<MemberListResult | null>(null);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -46,8 +54,12 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
   const [editing, setEditing] = useState<MemberUser | null>(null);
   const [formBusy, setFormBusy] = useState(false);
   const [statusTarget, setStatusTarget] = useState<MemberUser | null>(null);
-  const [statusBusy, setStatusBusy] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
+  const [copyBusyId, setCopyBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPasswords(getCachedMemberPasswords());
+  }, []);
 
   const load = useCallback(async () => {
     if (!isSuperAdmin && !tenantListsReady) {
@@ -63,25 +75,17 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         search: search || undefined,
         status,
         organizationId: isSuperAdmin ? undefined : organizationId || undefined,
-        teamId: isSuperAdmin ? undefined : workspaceTeamId || undefined,
         page,
         pageSize: 10,
       });
       setResult(members);
+      setPasswords((current) => ({ ...getCachedMemberPasswords(), ...current }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load members.");
     } finally {
       setLoading(false);
     }
-  }, [
-    isSuperAdmin,
-    organizationId,
-    page,
-    search,
-    status,
-    tenantListsReady,
-    workspaceTeamId,
-  ]);
+  }, [isSuperAdmin, organizationId, page, search, status, tenantListsReady]);
 
   useEffect(() => {
     if (!authLoading && !canManage) {
@@ -107,12 +111,45 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
     };
   }, [canManage, load]);
 
+  function rememberPassword(memberId: string, password: string) {
+    setCachedMemberPassword(memberId, password);
+    setPasswords((current) => ({ ...current, [memberId]: password }));
+  }
+
+  async function copyPasswordToClipboard(text: string) {
+    await copyText(text);
+    notify("Password copied");
+  }
+
+  async function handleCopyPassword(member: MemberUser) {
+    setCopyBusyId(member.id);
+    try {
+      let password = passwords[member.id] ?? getCachedMemberPasswords()[member.id] ?? null;
+
+      if (!password) {
+        const result = await resetMemberPassword(member.id);
+        password = result.temporaryPassword;
+        rememberPassword(member.id, password);
+      }
+
+      await copyPasswordToClipboard(password);
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Unable to copy password.", "error");
+    } finally {
+      setCopyBusyId(null);
+    }
+  }
+
   async function handleCreate(values: MemberFormValues) {
     setFormBusy(true);
     try {
       const created = await createMember(values);
+      const password =
+        created.temporaryPassword ?? (values.temporaryPassword.trim() || null);
+      if (password) {
+        rememberPassword(created.user.id, password);
+      }
       setFormMode(null);
-      setGeneratedPassword(created.temporaryPassword);
       notify("Member added.");
       await load();
     } catch (err) {
@@ -128,11 +165,25 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
     }
     setFormBusy(true);
     try {
-      await updateMember(editing.id, values);
+      const updated = await updateMember(editing.id, values);
+      const password =
+        updated.temporaryPassword ?? (values.temporaryPassword.trim() || null);
+      if (password) {
+        rememberPassword(updated.user.id, password);
+      }
       setFormMode(null);
       setEditing(null);
       notify("Member updated.");
-      await load();
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) =>
+                item.id === updated.user.id ? updated.user : item,
+              ),
+            }
+          : current,
+      );
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to update member.", "error");
     } finally {
@@ -144,22 +195,29 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
     if (!statusTarget) {
       return;
     }
-    setStatusBusy(true);
+    setStatusBusyId(statusTarget.id);
     const nextStatus = statusTarget.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
-      await updateMemberStatus(statusTarget.id, nextStatus);
+      const updated = await updateMemberStatus(statusTarget.id, nextStatus);
       setStatusTarget(null);
       notify(nextStatus === "ACTIVE" ? "Member activated" : "Member deactivated");
-      await load();
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) => (item.id === updated.id ? updated : item)),
+            }
+          : current,
+      );
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to update status.", "error");
     } finally {
-      setStatusBusy(false);
+      setStatusBusyId(null);
     }
   }
 
   if (authLoading || !canManage) {
-    return <p className="text-sm text-slate-500">Checking access…</p>;
+    return <p className="text-sm text-muted">Checking access…</p>;
   }
 
   return (
@@ -168,16 +226,18 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
         <PageHeader
           title="Members"
           description={`People who can create and work on invoices. ${scopeLabel}.`}
-          actions={<Button onClick={() => setFormMode("create")}>Add member</Button>}
+          actions={
+            canCreate ? <Button onClick={() => setFormMode("create")}>Add member</Button> : undefined
+          }
         />
-      ) : (
+      ) : canCreate ? (
         <div className="flex justify-end">
           <Button onClick={() => setFormMode("create")}>Add member</Button>
         </div>
-      )}
+      ) : null}
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -214,14 +274,16 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
       </form>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading members…</p>
+        <p className="text-sm text-muted">Loading members…</p>
       ) : error ? (
         <ErrorState title="We couldn't load members." message={error} onRetry={() => void load()} />
       ) : !result || result.items.length === 0 ? (
         <EmptyState
           title="No members yet"
           description="Add a member so they can work with invoices."
-          action={<Button onClick={() => setFormMode("create")}>Add member</Button>}
+          action={
+            canCreate ? <Button onClick={() => setFormMode("create")}>Add member</Button> : null
+          }
         />
       ) : (
         <DataTable
@@ -232,44 +294,45 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
               <tr>
                 <Th>Name</Th>
                 <Th>Email</Th>
+                <Th>Password</Th>
                 <Th>Status</Th>
                 <Th className="text-right">Actions</Th>
               </tr>
             </THead>
             <tbody>
               {result.items.map((member) => (
-                <tr key={member.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={member.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <Link href={`/members/${member.id}`} className="font-medium hover:underline">
                       {member.firstName} {member.lastName}
                     </Link>
-                    <p className="text-xs text-slate-500">
-                      {member.teams.length > 0
-                        ? `${member.teams.length} team${member.teams.length === 1 ? "" : "s"}`
-                        : "No teams"}
-                    </p>
                   </Td>
                   <Td muted>{member.email}</Td>
+                  <Td>
+                    <MemberPasswordCell
+                      password={passwords[member.id] ?? null}
+                      copying={copyBusyId === member.id}
+                      onCopy={() => handleCopyPassword(member)}
+                    />
+                  </Td>
                   <Td>
                     <StatusBadge status={member.status} />
                   </Td>
                   <Td className="text-right">
-                    <DropdownMenu
-                      items={[
-                        {
-                          label: "Edit",
-                          onClick: () => {
-                            setEditing(member);
-                            setFormMode("edit");
-                          },
-                        },
-                        {
-                          label: member.status === "ACTIVE" ? "Deactivate" : "Activate",
-                          onClick: () => setStatusTarget(member),
-                          danger: member.status === "ACTIVE",
-                        },
-                      ]}
-                    />
+                    <ActionGroup>
+                      <EditAction
+                        onClick={() => {
+                          setEditing(member);
+                          setFormMode("edit");
+                        }}
+                      />
+                      <StatusAction
+                        active={member.status === "ACTIVE"}
+                        loading={statusBusyId === member.id}
+                        disabled={Boolean(statusBusyId && statusBusyId !== member.id)}
+                        onClick={() => setStatusTarget(member)}
+                      />
+                    </ActionGroup>
                   </Td>
                 </tr>
               ))}
@@ -305,29 +368,18 @@ export function MembersPage({ embedded = false }: { embedded?: boolean }) {
 
       {statusTarget ? (
         <ConfirmDialog
-          title={statusTarget.status === "ACTIVE" ? "Deactivate this member?" : "Activate this member?"}
+          title={statusTarget.status === "ACTIVE" ? "Deactivate Member?" : "Activate Member?"}
           message={
             statusTarget.status === "ACTIVE"
-              ? `${statusTarget.firstName} ${statusTarget.lastName} will no longer be able to sign in.`
+              ? "Are you sure you want to deactivate this member? They will no longer be able to access the system."
               : `${statusTarget.firstName} ${statusTarget.lastName} will be able to sign in again.`
           }
           confirmLabel={statusTarget.status === "ACTIVE" ? "Deactivate" : "Activate"}
           danger={statusTarget.status === "ACTIVE"}
-          busy={statusBusy}
+          busy={statusBusyId === statusTarget.id}
           onCancel={() => setStatusTarget(null)}
           onConfirm={() => void handleStatusChange()}
         />
-      ) : null}
-
-      {generatedPassword ? (
-        <Dialog title="Temporary password" onClose={() => setGeneratedPassword(null)}>
-          <p className="text-sm text-slate-600">
-            Share this password now. It is not stored in plain text and will not be shown again.
-          </p>
-          <p className="mt-4 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm break-all">
-            {generatedPassword}
-          </p>
-        </Dialog>
       ) : null}
     </div>
   );

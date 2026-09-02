@@ -25,9 +25,9 @@ export const reportSchema = z.object({
   dateFrom: z.string(),
   dateTo: z.string(),
   role: z.enum(["SUPER_ADMIN", "ADMIN", "MEMBER"]),
-  scope: z.enum(["SYSTEM", "ORGANIZATION", "MEMBER"]),
+  scope: z.enum(["SYSTEM", "ORGANIZATION", "MEMBER", "ADMIN"]),
   organizationId: z.string().nullable(),
-  teamId: z.string().nullable(),
+  memberId: z.string().nullable().optional(),
   currency: z.string(),
   overview: z.object({
     revenue: z.string(),

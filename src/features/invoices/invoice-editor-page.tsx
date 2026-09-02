@@ -14,11 +14,9 @@ import { listCustomers } from "@/services/customers.service";
 import { createInvoice, getInvoice, updateInvoice } from "@/services/invoices.service";
 import { listMembers } from "@/services/members.service";
 import { listProducts } from "@/services/products.service";
-import { listTeams } from "@/services/teams.service";
 import type { Customer, Product } from "@/types/catalog";
 import type { InvoiceFormValues } from "@/types/invoice";
 import type { MemberUser } from "@/types/member";
-import type { Team } from "@/types/team";
 
 interface InvoiceEditorPageProps {
   invoiceId?: string;
@@ -31,6 +29,7 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
   const canCreate = hasPermission(user, "INVOICES_CREATE");
   const canUpdate = hasPermission(user, "INVOICES_UPDATE");
   const canCreateCustomer = hasPermission(user, "CUSTOMERS_CREATE");
+  const canSend = hasPermission(user, "INVOICES_SEND");
   const canListOrgMembers = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
   const [loading, setLoading] = useState(true);
@@ -38,7 +37,6 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
   const [busy, setBusy] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
   const [members, setMembers] = useState<MemberUser[]>([]);
   const [initialValues, setInitialValues] = useState<Partial<InvoiceFormValues> | undefined>();
 
@@ -54,23 +52,20 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
         setError("You can inspect invoices but cannot edit them.");
         return;
       }
-      const [customerResult, productResult, teamResult, memberResult, invoice] =
-        await Promise.all([
-          listCustomers({ status: "ACTIVE", pageSize: 50 }),
-          listProducts({ status: "ACTIVE", pageSize: 50 }),
-          listTeams({ status: "ACTIVE", pageSize: 50 }),
-          canListOrgMembers
-            ? listMembers({ status: "ACTIVE", pageSize: 50 })
-            : Promise.resolve({ items: [] as MemberUser[] }),
-          invoiceId ? getInvoice(invoiceId) : Promise.resolve(null),
-        ]);
+      const [customerResult, productResult, memberResult, invoice] = await Promise.all([
+        listCustomers({ status: "ACTIVE", pageSize: 100 }),
+        listProducts({ status: "ACTIVE", pageSize: 50 }),
+        canListOrgMembers
+          ? listMembers({ status: "ACTIVE", pageSize: 50 })
+          : Promise.resolve({ items: [] as MemberUser[] }),
+        invoiceId ? getInvoice(invoiceId) : Promise.resolve(null),
+      ]);
       if (invoice && invoice.status !== "DRAFT") {
         setError("Only draft invoices can be edited.");
         return;
       }
       setCustomers(customerResult.items);
       setProducts(productResult.items);
-      setTeams(teamResult.items);
       setMembers(
         canListOrgMembers
           ? memberResult.items
@@ -79,7 +74,7 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
                 {
                   ...user,
                   organization: null,
-                  teams: [],
+                  administrator: null,
                 },
               ]
             : [],
@@ -142,7 +137,7 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
       {loading ? (
         <TableSkeleton cols={3} rows={4} />
       ) : error && !initialValues && invoiceId ? (
-        <div role="alert" className="rounded-[12px] border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+        <div role="alert" className="rounded-2xl border border-border bg-primary-soft p-6 text-sm text-primary">
           {error}
         </div>
       ) : (
@@ -150,9 +145,9 @@ export function InvoiceEditorPage({ invoiceId }: InvoiceEditorPageProps) {
           mode={invoiceId ? "edit" : "create"}
           customers={customers}
           products={products}
-          teams={teams}
           members={members}
           canCreateCustomer={canCreateCustomer}
+          canSend={canSend}
           initialValues={initialValues}
           busy={busy}
           error={error}

@@ -8,7 +8,6 @@ export type NavIcon =
   | "payment"
   | "expense"
   | "report"
-  | "team"
   | "member"
   | "admin"
   | "settings";
@@ -34,10 +33,19 @@ export const NAV_GROUPS: NavGroup[] = [
     label: null,
     items: [
       { href: "/", label: "Dashboard", roles: ["SUPER_ADMIN"], match: "exact", icon: "home" },
-      { href: "/teams", label: "Teams", roles: ["SUPER_ADMIN"], match: "prefix", icon: "team", permission: "TEAMS_VIEW" },
       { href: "/administrators", label: "Administrators", roles: ["SUPER_ADMIN"], match: "prefix", icon: "admin", permission: "ADMINS_VIEW" },
+      { href: "/members", label: "Members", roles: ["SUPER_ADMIN"], match: "prefix", icon: "member", permission: "USERS_VIEW" },
       { href: "/reports", label: "Reports", roles: ["SUPER_ADMIN"], match: "reports", icon: "report", permission: "REPORTS_VIEW" },
-      { href: "/settings", label: "Settings", roles: ["SUPER_ADMIN"], match: "prefix", icon: "settings" },
+    ],
+  },
+  {
+    id: "sa-settings",
+    label: "Settings",
+    items: [
+      { href: "/settings/invoice", label: "Invoice Settings", roles: ["SUPER_ADMIN"], match: "prefix", icon: "invoice", permission: "SETTINGS_VIEW" },
+      { href: "/settings/templates", label: "Templates", roles: ["SUPER_ADMIN"], match: "prefix", icon: "settings", permission: "SETTINGS_VIEW" },
+      { href: "/settings/account", label: "Account", roles: ["SUPER_ADMIN"], match: "prefix", icon: "admin", permission: "SETTINGS_VIEW" },
+      { href: "/settings/payment", label: "Payment", roles: ["SUPER_ADMIN"], match: "prefix", icon: "payment", permission: "SETTINGS_VIEW" },
     ],
   },
   {
@@ -46,9 +54,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/", label: "Dashboard", roles: ["ADMIN"], match: "exact", icon: "home" },
       { href: "/members", label: "Members", roles: ["ADMIN"], match: "prefix", icon: "member", permission: "USERS_VIEW" },
-      { href: "/customers", label: "Customers", roles: ["ADMIN"], match: "prefix", icon: "customer", permission: "CUSTOMERS_VIEW" },
-      { href: "/invoices", label: "Invoices", roles: ["ADMIN"], match: "prefix", icon: "invoice", permission: "INVOICES_VIEW" },
-      { href: "/payments", label: "Payments", roles: ["ADMIN"], match: "prefix", icon: "payment", permission: "PAYMENTS_VIEW" },
       { href: "/reports", label: "Reports", roles: ["ADMIN"], match: "reports", icon: "report", permission: "REPORTS_VIEW" },
       { href: "/settings", label: "Settings", roles: ["ADMIN"], match: "prefix", icon: "settings" },
     ],
@@ -75,11 +80,22 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 
 export const SUPER_ADMIN_PATH_PREFIXES = [
   "/",
-  "/teams",
+  "/members",
   "/administrators",
   "/reports",
   "/settings",
 ];
+
+export const ADMIN_PATH_PREFIXES = ["/", "/members", "/reports", "/settings"];
+
+export function isAdminPath(pathname: string): boolean {
+  if (pathname === "/") {
+    return true;
+  }
+  return ADMIN_PATH_PREFIXES.some(
+    (prefix) => prefix !== "/" && (pathname === prefix || pathname.startsWith(`${prefix}/`)),
+  );
+}
 
 export function isSuperAdminPath(pathname: string): boolean {
   if (pathname === "/") {
@@ -120,12 +136,20 @@ export function pageTitleForPath(pathname: string, search: string): string {
   if (pathname.startsWith("/customers/") && pathname !== "/customers") {
     return "Customer";
   }
-  if (pathname.startsWith("/teams/") && pathname !== "/teams") {
-    return "Team";
-  }
   if (pathname.startsWith("/members/") && pathname !== "/members") {
     return "Member";
   }
+  if (pathname === "/settings" || pathname.startsWith("/settings/")) {
+    for (const group of NAV_GROUPS) {
+      for (const item of group.items) {
+        if (item.href.startsWith("/settings") && isNavItemActive(item, pathname, search)) {
+          return item.label;
+        }
+      }
+    }
+    return "Settings";
+  }
+
   for (const group of NAV_GROUPS) {
     for (const item of group.items) {
       if (isNavItemActive(item, pathname, search)) {
@@ -133,5 +157,6 @@ export function pageTitleForPath(pathname: string, search: string): string {
       }
     }
   }
-  return "OutInvoice";
+
+  return "Invoice Hub";
 }

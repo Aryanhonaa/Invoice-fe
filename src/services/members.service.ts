@@ -7,7 +7,7 @@ export async function listMembers(query: {
   search?: string;
   status?: AccountStatus | "";
   organizationId?: string;
-  teamId?: string;
+  administratorId?: string;
   page?: number;
   pageSize?: number;
 }): Promise<MemberListResult> {
@@ -15,7 +15,7 @@ export async function listMembers(query: {
   if (query.search) params.set("search", query.search);
   if (query.status) params.set("status", query.status);
   if (query.organizationId) params.set("organizationId", query.organizationId);
-  if (query.teamId) params.set("teamId", query.teamId);
+  if (query.administratorId) params.set("administratorId", query.administratorId);
   params.set("page", String(query.page ?? 1));
   params.set("pageSize", String(query.pageSize ?? 10));
   return memberListResultSchema.parse(await apiRequest<MemberListResult>(`/api/members?${params}`));
@@ -38,11 +38,9 @@ export async function createMember(values: MemberFormValues): Promise<{
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
-        phone: values.phone || undefined,
         organizationId: values.organizationId || undefined,
         temporaryPassword: values.temporaryPassword || undefined,
         status: values.status,
-        teamIds: values.teamIds.length > 0 ? values.teamIds : undefined,
       }),
     },
   );
@@ -55,18 +53,31 @@ export async function createMember(values: MemberFormValues): Promise<{
 
 export async function updateMember(
   id: string,
-  values: Pick<MemberFormValues, "firstName" | "lastName" | "email" | "phone">,
-): Promise<MemberUser> {
-  const data = await apiRequest<{ user: MemberUser }>(`/api/members/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      firstName: values.firstName,
-      lastName: values.lastName,
-      email: values.email,
-      phone: values.phone || null,
-    }),
+  values: Pick<MemberFormValues, "firstName" | "lastName" | "email" | "temporaryPassword">,
+): Promise<{ user: MemberUser; temporaryPassword: string | null }> {
+  const data = await apiRequest<{ user: MemberUser; temporaryPassword: string | null }>(
+    `/api/members/${id}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        temporaryPassword: values.temporaryPassword || undefined,
+      }),
+    },
+  );
+  return {
+    user: memberUserSchema.parse(data.user),
+    temporaryPassword: data.temporaryPassword,
+  };
+}
+
+export async function resetMemberPassword(id: string): Promise<{ temporaryPassword: string }> {
+  const data = await apiRequest<{ temporaryPassword: string }>(`/api/members/${id}/password`, {
+    method: "POST",
   });
-  return memberUserSchema.parse(data.user);
+  return { temporaryPassword: data.temporaryPassword };
 }
 
 export async function updateMemberStatus(id: string, status: AccountStatus): Promise<MemberUser> {

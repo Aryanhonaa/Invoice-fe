@@ -10,7 +10,6 @@ export async function listPayments(query: {
   customerId?: string;
   invoiceId?: string;
   organizationId?: string;
-  teamId?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -22,7 +21,6 @@ export async function listPayments(query: {
   if (query.customerId) params.set("customerId", query.customerId);
   if (query.invoiceId) params.set("invoiceId", query.invoiceId);
   if (query.organizationId) params.set("organizationId", query.organizationId);
-  if (query.teamId) params.set("teamId", query.teamId);
   if (query.dateFrom) params.set("dateFrom", query.dateFrom);
   if (query.dateTo) params.set("dateTo", query.dateTo);
   params.set("page", String(query.page ?? 1));

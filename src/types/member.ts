@@ -1,15 +1,16 @@
 import type { OrganizationSummary } from "@/types/admin";
 import type { AccountStatus, PublicUser } from "@/types/auth";
 
-export interface MemberTeamSummary {
+export interface AdministratorSummary {
   id: string;
-  name: string;
-  isActive: boolean;
+  firstName: string;
+  lastName: string;
+  email: string;
 }
 
 export interface MemberUser extends PublicUser {
   organization: OrganizationSummary | null;
-  teams: MemberTeamSummary[];
+  administrator: AdministratorSummary | null;
 }
 
 export interface MemberListResult {
@@ -24,9 +25,7 @@ export interface MemberFormValues {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
   organizationId: string;
   temporaryPassword: string;
   status: AccountStatus;
-  teamIds: string[];
 }

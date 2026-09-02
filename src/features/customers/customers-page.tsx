@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ActionGroup, DeleteAction, EditAction } from "@/components/ui/action-buttons";
 import { Button } from "@/components/ui/button";
 import { DataTable, Table, Td, Th, THead } from "@/components/ui/data-table";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Field, SelectInput, TextInput } from "@/components/ui/field";
@@ -144,7 +144,7 @@ export function CustomersPage() {
       />
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -213,13 +213,13 @@ export function CustomersPage() {
             </THead>
             <tbody>
               {result.items.map((customer) => (
-                <tr key={customer.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={customer.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <Link href={`/customers/${customer.id}`} className="font-medium hover:underline">
                       {customer.name}
                     </Link>
                     {customer.company ? (
-                      <p className="text-xs text-slate-500">{customer.company}</p>
+                      <p className="text-xs text-muted">{customer.company}</p>
                     ) : null}
                   </Td>
                   <Td muted>{customer.email ?? "—"}</Td>
@@ -227,24 +227,18 @@ export function CustomersPage() {
                     <StatusBadge status={customer.isActive ? "ACTIVE" : "INACTIVE"} />
                   </Td>
                   <Td className="text-right">
-                    <DropdownMenu
-                      items={[
-                        {
-                          label: "View",
-                          onClick: () => router.push(`/customers/${customer.id}`),
-                        },
-                        {
-                          label: "Edit",
-                          onClick: () => {
-                            setEditing(customer);
-                            setFormMode("edit");
-                          },
-                        },
-                        ...(canDelete
-                          ? [{ label: "Delete", onClick: () => setDeleteTarget(customer), danger: true }]
-                          : []),
-                      ]}
-                    />
+                    <ActionGroup>
+                      <EditAction mode="view" onClick={() => router.push(`/customers/${customer.id}`)} />
+                      <EditAction
+                        onClick={() => {
+                          setEditing(customer);
+                          setFormMode("edit");
+                        }}
+                      />
+                      {canDelete ? (
+                        <DeleteAction onClick={() => setDeleteTarget(customer)} />
+                      ) : null}
+                    </ActionGroup>
                   </Td>
                 </tr>
               ))}

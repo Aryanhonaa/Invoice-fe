@@ -5,6 +5,7 @@ export interface OrganizationSummary {
   name: string;
   slug: string;
   isActive: boolean;
+  logoUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
   admin?: {
@@ -15,13 +16,13 @@ export interface OrganizationSummary {
   } | null;
   adminCount?: number;
   memberCount?: number;
-  teamCount?: number;
   customerCount?: number;
   invoiceCount?: number;
 }
 
 export interface AdminUser extends PublicUser {
   organization: OrganizationSummary | null;
+  memberCount: number;
 }
 
 export interface AdminListResult {
@@ -46,7 +47,6 @@ export interface AdminFormValues {
   email: string;
   phone: string;
   organizationId: string;
-  teamId: string;
   temporaryPassword: string;
   status: AccountStatus;
 }

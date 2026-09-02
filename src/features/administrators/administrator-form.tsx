@@ -3,21 +3,17 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, SelectInput, TextInput } from "@/components/ui/field";
+import { Field, TextInput } from "@/components/ui/field";
 import { createAdminFormSchema } from "@/schemas/admin";
 import type { AdminFormValues, AdminUser } from "@/types/admin";
-import type { Team } from "@/types/team";
 
 interface AdministratorFormProps {
   title: string;
-  teamId?: string;
-  teamName?: string;
   initialValues?: Partial<AdminFormValues>;
   mode: "create" | "edit";
   busy: boolean;
   onClose: () => void;
   onSubmit: (values: AdminFormValues) => Promise<void>;
-  teams?: Team[];
 }
 
 const emptyValues: AdminFormValues = {
@@ -26,16 +22,12 @@ const emptyValues: AdminFormValues = {
   email: "",
   phone: "",
   organizationId: "",
-  teamId: "",
   temporaryPassword: "",
   status: "ACTIVE",
 };
 
 export function AdministratorForm({
   title,
-  teamId,
-  teamName,
-  teams = [],
   initialValues,
   mode,
   busy,
@@ -45,7 +37,6 @@ export function AdministratorForm({
   const [values, setValues] = useState<AdminFormValues>({
     ...emptyValues,
     ...initialValues,
-    teamId: teamId ?? initialValues?.teamId ?? "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof AdminFormValues, string>>>({});
 
@@ -56,7 +47,7 @@ export function AdministratorForm({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (mode === "create") {
-      const parsed = createAdminFormSchema.safeParse({ ...values, teamId: values.teamId || teamId });
+      const parsed = createAdminFormSchema.safeParse(values);
       if (!parsed.success) {
         const nextErrors: Partial<Record<keyof AdminFormValues, string>> = {};
         for (const issue of parsed.error.issues) {
@@ -69,7 +60,10 @@ export function AdministratorForm({
         return;
       }
       setErrors({});
-      await onSubmit({ ...parsed.data, teamId: parsed.data.teamId } as AdminFormValues);
+      await onSubmit({
+        ...values,
+        ...parsed.data,
+      } as AdminFormValues);
       return;
     }
 
@@ -97,27 +91,6 @@ export function AdministratorForm({
       }
     >
       <form id="administrator-form" className="grid gap-4" onSubmit={(event) => void handleSubmit(event)}>
-        {mode === "create" && !teamName ? (
-          <Field label="Team" htmlFor="admin-team" error={errors.teamId} required>
-            <SelectInput
-              id="admin-team"
-              value={values.teamId}
-              onChange={(event) => update("teamId", event.target.value)}
-              required
-            >
-              <option value="">Select team</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : teamName ? (
-          <p className="text-sm text-muted">
-            Team: <span className="font-medium text-foreground">{teamName}</span>
-          </p>
-        ) : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name" htmlFor="firstName" error={errors.firstName} required>
             <TextInput
@@ -152,8 +125,8 @@ export function AdministratorForm({
           />
         </Field>
         {mode === "create" ? (
-          <p className="text-xs text-slate-500">
-            A temporary password is generated automatically and shown once after you save.
+          <p className="text-xs text-muted">
+            A temporary password is generated automatically and appears in the Password column after you save.
           </p>
         ) : null}
       </form>
@@ -168,7 +141,6 @@ export function valuesFromAdmin(admin: AdminUser): AdminFormValues {
     email: admin.email,
     phone: "",
     organizationId: admin.organizationId ?? "",
-    teamId: "",
     temporaryPassword: "",
     status: admin.status,
   };

@@ -3,12 +3,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, SelectInput, TextInput } from "@/components/ui/field";
-import { ApiError } from "@/lib/api/types";
+import { Field, PasswordInput, SelectInput, TextInput } from "@/components/ui/field";
 import { memberFormSchema } from "@/schemas/member";
-import { listTeams } from "@/services/teams.service";
 import type { MemberFormValues, MemberUser } from "@/types/member";
-import type { Team } from "@/types/team";
 
 interface MemberFormProps {
   title: string;
@@ -23,11 +20,9 @@ const emptyValues: MemberFormValues = {
   firstName: "",
   lastName: "",
   email: "",
-  phone: "",
   organizationId: "",
   temporaryPassword: "",
   status: "ACTIVE",
-  teamIds: [],
 };
 
 export function MemberForm({
@@ -41,59 +36,11 @@ export function MemberForm({
   const [values, setValues] = useState<MemberFormValues>({
     ...emptyValues,
     ...initialValues,
-    teamIds: initialValues?.teamIds ?? [],
   });
   const [errors, setErrors] = useState<Partial<Record<keyof MemberFormValues, string>>>({});
-  const [formError, setFormError] = useState<string | null>(null);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [teamsLoading, setTeamsLoading] = useState(false);
-
-  useEffect(() => {
-    if (mode !== "create") {
-      return;
-    }
-
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        setTeamsLoading(true);
-        try {
-          const result = await listTeams({
-            status: "ACTIVE",
-            pageSize: 50,
-          });
-          if (!cancelled) {
-            setTeams(result.items);
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setFormError(err instanceof ApiError ? err.message : "Unable to load teams.");
-          }
-        } finally {
-          if (!cancelled) {
-            setTeamsLoading(false);
-          }
-        }
-      })();
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [mode]);
 
   function update<K extends keyof MemberFormValues>(key: K, value: MemberFormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
-  }
-
-  function toggleTeam(teamId: string) {
-    setValues((current) => ({
-      ...current,
-      teamIds: current.teamIds.includes(teamId)
-        ? current.teamIds.filter((id) => id !== teamId)
-        : [...current.teamIds, teamId],
-    }));
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -111,12 +58,9 @@ export function MemberForm({
       return;
     }
     setErrors({});
-    setFormError(null);
     await onSubmit({
       ...parsed.data,
-      phone: parsed.data.phone ?? "",
       organizationId: values.organizationId,
-      teamIds: values.teamIds,
     });
   }
 
@@ -163,14 +107,6 @@ export function MemberForm({
             required
           />
         </Field>
-        <Field label="Phone" htmlFor="member-phone" error={errors.phone}>
-          <TextInput
-            id="member-phone"
-            type="tel"
-            value={values.phone}
-            onChange={(event) => update("phone", event.target.value)}
-          />
-        </Field>
         {mode === "create" ? (
           <>
             <Field
@@ -178,15 +114,14 @@ export function MemberForm({
               htmlFor="member-password"
               error={errors.temporaryPassword}
             >
-              <TextInput
+              <PasswordInput
                 id="member-password"
-                type="password"
                 autoComplete="new-password"
                 value={values.temporaryPassword}
                 onChange={(event) => update("temporaryPassword", event.target.value)}
               />
             </Field>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted">
               Leave blank to generate a secure temporary password. It will be shown once.
             </p>
             <Field label="Status" htmlFor="member-status" error={errors.status}>
@@ -201,34 +136,27 @@ export function MemberForm({
                 <option value="INACTIVE">Inactive</option>
               </SelectInput>
             </Field>
-            <fieldset>
-              <legend className="mb-2 text-sm font-medium text-slate-700">Assign to teams</legend>
-              {teamsLoading ? (
-                <p className="text-sm text-slate-500">Loading teams…</p>
-              ) : teams.length === 0 ? (
-                <p className="text-sm text-slate-500">No active teams available.</p>
-              ) : (
-                <div className="grid max-h-40 gap-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
-                  {teams.map((team) => (
-                    <label key={team.id} className="flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={values.teamIds.includes(team.id)}
-                        onChange={() => toggleTeam(team.id)}
-                      />
-                      {team.name}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </fieldset>
           </>
-        ) : null}
-        {formError ? (
-          <p className="text-sm text-red-700" role="alert">
-            {formError}
-          </p>
-        ) : null}
+        ) : (
+          <>
+            <Field
+              label="New password"
+              htmlFor="member-password-edit"
+              error={errors.temporaryPassword}
+            >
+              <PasswordInput
+                id="member-password-edit"
+                autoComplete="new-password"
+                value={values.temporaryPassword}
+                onChange={(event) => update("temporaryPassword", event.target.value)}
+                placeholder="Leave blank to keep current password"
+              />
+            </Field>
+            <p className="text-xs text-muted">
+              Set a new password here, or leave blank to keep the current one.
+            </p>
+          </>
+        )}
       </form>
     </Dialog>
   );
@@ -239,10 +167,8 @@ export function valuesFromMember(member: MemberUser): MemberFormValues {
     firstName: member.firstName,
     lastName: member.lastName,
     email: member.email,
-    phone: member.phone ?? "",
     organizationId: member.organizationId ?? "",
     temporaryPassword: "",
     status: member.status,
-    teamIds: member.teams.map((team) => team.id),
   };
 }

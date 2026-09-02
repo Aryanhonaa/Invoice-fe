@@ -16,8 +16,6 @@ function moneyString(value: Decimal): string {
 export interface InvoiceLineInput {
   quantity: string;
   unitPrice: string;
-  discount?: string;
-  taxRate?: string;
 }
 
 export interface InvoiceTotals {
@@ -27,44 +25,49 @@ export interface InvoiceTotals {
   total: string;
 }
 
+export function calculateLineAmount(quantity: string, unitPrice: string): string {
+  const qty = money(quantity);
+  const price = money(unitPrice);
+  if (qty.lte(0)) {
+    return "0.0000";
+  }
+  if (price.lt(0)) {
+    return "0.0000";
+  }
+  return moneyString(qty.times(price));
+}
+
 export function calculateInvoiceTotals(lines: InvoiceLineInput[]): InvoiceTotals {
   let subtotal = new Decimal(0);
-  let discountAmount = new Decimal(0);
-  let taxAmount = new Decimal(0);
-  let total = new Decimal(0);
 
   for (const line of lines) {
     const quantity = money(line.quantity);
     const unitPrice = money(line.unitPrice);
-    const discount = money(line.discount ?? "0");
-    const taxRate = money(line.taxRate ?? "0");
-    if (quantity.lt(0) || unitPrice.lt(0) || discount.lt(0) || taxRate.lt(0)) {
-      throw new Error("Invoice amounts cannot be negative");
+    if (quantity.lte(0)) {
+      throw new Error("Quantity must be greater than 0");
     }
-    if (taxRate.gt(100)) {
-      throw new Error("Tax rate cannot exceed 100");
+    if (unitPrice.lt(0)) {
+      throw new Error("Unit price cannot be negative");
     }
-    const lineSubtotal = quantity.times(unitPrice).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
-    const lineDiscount = discount.gt(lineSubtotal)
-      ? lineSubtotal
-      : discount.toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
-    const taxable = lineSubtotal.minus(lineDiscount);
-    const lineTax = taxable.times(taxRate).dividedBy(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
-    const lineTotal = taxable.plus(lineTax);
-    subtotal = subtotal.plus(lineSubtotal);
-    discountAmount = discountAmount.plus(lineDiscount);
-    taxAmount = taxAmount.plus(lineTax);
-    total = total.plus(lineTotal);
+    subtotal = subtotal.plus(quantity.times(unitPrice));
   }
 
+  const subtotalValue = moneyString(subtotal);
+
   return {
-    subtotal: moneyString(subtotal),
-    discountAmount: moneyString(discountAmount),
-    taxAmount: moneyString(taxAmount),
-    total: moneyString(total),
+    subtotal: subtotalValue,
+    discountAmount: "0.0000",
+    taxAmount: "0.0000",
+    total: subtotalValue,
   };
 }
 
 export function formatMoney(value: string, currency = "USD"): string {
-  return `${currency} ${new Decimal(value || "0").toFixed(2)}`;
+  const amount = new Decimal(value || "0");
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.length === 3 ? currency : "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(amount.toFixed(2)));
 }

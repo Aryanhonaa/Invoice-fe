@@ -10,7 +10,7 @@ export interface ReportQuery {
   dateFrom?: string;
   dateTo?: string;
   organizationId?: string;
-  teamId?: string;
+  memberId?: string;
   page?: number;
 }
 
@@ -20,7 +20,7 @@ function queryString(query: ReportQuery): string {
   if (query.preset === "custom" && query.dateFrom) params.set("dateFrom", query.dateFrom);
   if (query.preset === "custom" && query.dateTo) params.set("dateTo", query.dateTo);
   if (query.organizationId) params.set("organizationId", query.organizationId);
-  if (query.teamId) params.set("teamId", query.teamId);
+  if (query.memberId) params.set("memberId", query.memberId);
   params.set("page", String(query.page ?? 1));
   return params.toString();
 }

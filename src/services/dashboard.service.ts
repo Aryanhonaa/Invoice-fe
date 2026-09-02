@@ -4,7 +4,6 @@ import type { Dashboard, DashboardDatePreset } from "@/types/dashboard";
 
 export async function getDashboard(query: {
   organizationId?: string;
-  teamId?: string;
   preset?: DashboardDatePreset;
   dateFrom?: string;
   dateTo?: string;
@@ -12,9 +11,6 @@ export async function getDashboard(query: {
   const params = new URLSearchParams();
   if (query.organizationId) {
     params.set("organizationId", query.organizationId);
-  }
-  if (query.teamId) {
-    params.set("teamId", query.teamId);
   }
   if (query.preset) {
     params.set("preset", query.preset);

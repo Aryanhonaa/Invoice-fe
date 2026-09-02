@@ -17,6 +17,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { createExpense } from "@/services/expenses.service";
+import { listMembers } from "@/services/members.service";
 import { downloadReportCsv, getReport } from "@/services/reports.service";
 import {
   DATE_PRESETS,
@@ -27,12 +28,13 @@ import {
   type Report,
   type ReportKind,
 } from "@/types/report";
+import type { MemberUser } from "@/types/member";
 
 const REPORT_KIND_VALUES = new Set<string>(REPORT_KINDS);
 
 export function ReportsPage() {
   const { user } = useAuth();
-  const { organizationId, teamId, scopeLabel } = useWorkspace();
+  const { organizationId, scopeLabel } = useWorkspace();
   const requestIdRef = useRef(0);
   const { notify } = useToast();
   const router = useRouter();
@@ -40,9 +42,12 @@ export function ReportsPage() {
   const requestedKind = searchParams.get("kind");
   const kind: ReportKind =
     requestedKind && REPORT_KIND_VALUES.has(requestedKind) ? (requestedKind as ReportKind) : "summary";
+  const canFilterMembers = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const [preset, setPreset] = useState<DatePreset>("this_month");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [memberId, setMemberId] = useState("");
+  const [members, setMembers] = useState<MemberUser[]>([]);
   const [page, setPage] = useState(1);
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +66,33 @@ export function ReportsPage() {
     setPage(1);
   }
 
+  useEffect(() => {
+    if (!canFilterMembers) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    void listMembers({
+      status: "ACTIVE",
+      organizationId: organizationId || undefined,
+      page: 1,
+      pageSize: 100,
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setMembers(result.items);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMembers([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canFilterMembers, organizationId]);
+
   const load = useCallback(async () => {
     if (preset === "custom" && (!dateFrom || !dateTo)) {
       return;
@@ -71,7 +103,7 @@ export function ReportsPage() {
       dateFrom: preset === "custom" ? dateFrom : undefined,
       dateTo: preset === "custom" ? dateTo : undefined,
       organizationId: organizationId || undefined,
-      teamId: teamId || undefined,
+      memberId: canFilterMembers && memberId ? memberId : undefined,
       page,
     };
     const requestId = ++requestIdRef.current;
@@ -93,7 +125,7 @@ export function ReportsPage() {
         setLoading(false);
       }
     }
-  }, [dateFrom, dateTo, kind, organizationId, page, preset, teamId]);
+  }, [canFilterMembers, dateFrom, dateTo, kind, memberId, organizationId, page, preset]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +142,10 @@ export function ReportsPage() {
 
   const canRecordExpense = hasPermission(user, "EXPENSES_CREATE");
   const currency = report?.currency ?? "USD";
+  const selectedMember = members.find((member) => member.id === memberId);
+  const selectedMemberLabel = selectedMember
+    ? `${selectedMember.firstName} ${selectedMember.lastName}`
+    : "All members";
 
   return (
     <div className="space-y-6">
@@ -118,7 +154,9 @@ export function ReportsPage() {
         description={
           kind === "expenses"
             ? `Track expenses for the selected period. ${scopeLabel}.`
-            : `Financial reports for your authorized scope. ${scopeLabel}.`
+            : canFilterMembers
+              ? `Financial reports for ${selectedMemberLabel.toLowerCase()}. ${scopeLabel}.`
+              : `Financial reports for your authorized scope. ${scopeLabel}.`
         }
         actions={
           <>
@@ -134,7 +172,7 @@ export function ReportsPage() {
                   dateFrom: preset === "custom" ? dateFrom : undefined,
                   dateTo: preset === "custom" ? dateTo : undefined,
                   organizationId: organizationId || undefined,
-                  teamId: teamId || undefined,
+                  memberId: canFilterMembers && memberId ? memberId : undefined,
                   page,
                 }).catch((err) =>
                   notify(err instanceof ApiError ? err.message : "Export failed.", "error"),
@@ -148,7 +186,7 @@ export function ReportsPage() {
       />
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2 xl:grid-cols-6"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-2 xl:grid-cols-6"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -171,6 +209,25 @@ export function ReportsPage() {
             ))}
           </SelectInput>
         </Field>
+        {canFilterMembers ? (
+          <Field label="Select Member" htmlFor="report-member">
+            <SelectInput
+              id="report-member"
+              value={memberId}
+              onChange={(event) => {
+                setMemberId(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All Members</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.firstName} {member.lastName}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+        ) : null}
         <Field label="Date range" htmlFor="report-preset">
           <SelectInput
             id="report-preset"
@@ -215,7 +272,7 @@ export function ReportsPage() {
       </form>
 
       {loading && !report ? (
-        <p className="text-sm text-slate-500">Loading report…</p>
+        <p className="text-sm text-muted">Loading report…</p>
       ) : error || !report ? (
         <ErrorState title="We couldn't load this report." message={error} onRetry={() => void load()} />
       ) : (
@@ -263,19 +320,19 @@ export function ReportsPage() {
             />
           </div>
 
-          <section className="rounded-xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-sm font-semibold text-slate-900">{REPORT_LABELS[report.kind]}</h3>
-              <p className="mt-1 text-xs text-slate-500">
+          <section className="rounded-2xl border border-border bg-surface">
+            <div className="border-b border-border px-5 py-4">
+              <h3 className="text-sm font-semibold text-foreground">{REPORT_LABELS[report.kind]}</h3>
+              <p className="mt-1 text-xs text-muted">
                 {report.dateFrom.slice(0, 10)} – {report.dateTo.slice(0, 10)} · {report.scope.replaceAll("_", " ")}
               </p>
             </div>
             {report.table.rows.length === 0 ? (
-              <p className="px-5 py-8 text-sm text-slate-500">No aggregated rows for this range.</p>
+              <p className="px-5 py-8 text-sm text-muted">No aggregated rows for this range.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="bg-muted-soft text-xs uppercase tracking-wide text-muted">
                     <tr>
                       {report.table.columns.map((column) => (
                         <th key={column.key} className="px-5 py-3 font-medium">
@@ -286,9 +343,9 @@ export function ReportsPage() {
                   </thead>
                   <tbody>
                     {report.table.rows.map((row, index) => (
-                      <tr key={`${row[report.table.columns[0]?.key ?? "id"]}-${index}`} className="border-t border-slate-100">
+                      <tr key={`${row[report.table.columns[0]?.key ?? "id"]}-${index}`} className="border-t border-border">
                         {report.table.columns.map((column) => (
-                          <td key={column.key} className="px-5 py-3 text-slate-600">
+                          <td key={column.key} className="px-5 py-3 text-muted">
                             {formatCell(row[column.key], column.key, currency)}
                           </td>
                         ))}
@@ -299,7 +356,7 @@ export function ReportsPage() {
               </div>
             )}
             {report.table.total > report.table.pageSize ? (
-              <div className="border-t border-slate-100 px-5 py-3">
+              <div className="border-t border-border px-5 py-3">
                 <Pagination
                   page={report.table.page}
                   totalPages={Math.max(1, Math.ceil(report.table.total / report.table.pageSize))}

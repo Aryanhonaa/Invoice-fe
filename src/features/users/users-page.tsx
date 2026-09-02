@@ -27,8 +27,8 @@ export function UsersPage() {
           type="button"
           className={
             tab === "admins"
-              ? "rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-primary"
-              : "rounded-full px-3 py-1 text-sm text-muted hover:bg-slate-50"
+              ? "rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary"
+              : "rounded-full px-3 py-1 text-sm text-muted hover:bg-muted-soft"
           }
           onClick={() => setTab("admins")}
         >
@@ -38,8 +38,8 @@ export function UsersPage() {
           type="button"
           className={
             tab === "members"
-              ? "rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-primary"
-              : "rounded-full px-3 py-1 text-sm text-muted hover:bg-slate-50"
+              ? "rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary"
+              : "rounded-full px-3 py-1 text-sm text-muted hover:bg-muted-soft"
           }
           onClick={() => setTab("members")}
         >

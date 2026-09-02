@@ -66,7 +66,7 @@ export function DropdownMenu({ label = "⋯", ariaLabel = "Actions", items }: Dr
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 z-20 mt-1 min-w-40 rounded-[12px] border border-border bg-surface py-1 shadow-md"
+          className="absolute right-0 z-20 mt-1 min-w-40 rounded-2xl border border-border bg-surface py-1"
         >
           {items.map((item) => (
             <button
@@ -75,7 +75,7 @@ export function DropdownMenu({ label = "⋯", ariaLabel = "Actions", items }: Dr
               role="menuitem"
               disabled={item.disabled}
               className={`block w-full px-3 py-2 text-left text-sm disabled:opacity-50 ${
-                item.danger ? "text-red-700 hover:bg-red-50" : "text-slate-700 hover:bg-slate-50"
+                item.danger ? "text-primary hover:bg-primary-soft" : "text-foreground hover:bg-muted-soft"
               }`}
               onClick={(event) => {
                 event.stopPropagation();

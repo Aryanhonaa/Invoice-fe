@@ -23,7 +23,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <Toaster richColors position="bottom-right" closeButton />
+      <Toaster
+        position="bottom-right"
+        closeButton
+        toastOptions={{
+          classNames: {
+            toast: "rounded-2xl border border-border bg-surface text-foreground",
+            success: "border-border",
+            error: "border-border",
+          },
+        }}
+      />
     </ToastContext.Provider>
   );
 }

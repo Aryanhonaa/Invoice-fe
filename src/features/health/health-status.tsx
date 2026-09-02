@@ -7,26 +7,19 @@ export function HealthStatus() {
 
   if (status === "loading") {
     return (
-      <section
-        aria-busy="true"
-        aria-live="polite"
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <p className="text-sm font-medium text-slate-500">Checking API status…</p>
-        <div className="mt-4 h-2 w-40 animate-pulse rounded bg-slate-200" />
+      <section aria-busy="true" aria-live="polite" className="rounded-2xl border border-border bg-surface p-6">
+        <p className="text-sm font-medium text-muted">Checking API status…</p>
+        <div className="mt-4 h-2 w-40 animate-pulse rounded bg-muted-soft" />
       </section>
     );
   }
 
   if (status === "error") {
     return (
-      <section
-        role="alert"
-        className="rounded-xl border border-red-200 bg-red-50 p-6"
-      >
-        <h2 className="text-sm font-semibold text-red-800">API unavailable</h2>
-        <p className="mt-2 text-sm text-red-700">{error}</p>
-        <p className="mt-3 text-xs text-red-600">
+      <section role="alert" className="rounded-2xl border border-border bg-primary-soft p-6">
+        <h2 className="text-sm font-semibold text-primary">API unavailable</h2>
+        <p className="mt-2 text-sm text-foreground">{error}</p>
+        <p className="mt-3 text-xs text-muted">
           Start the backend with <code className="font-mono">npm run dev</code> in{" "}
           <code className="font-mono">/be</code>.
         </p>
@@ -37,23 +30,17 @@ export function HealthStatus() {
   const databaseConnected = data?.database === "connected";
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-        System status
-      </h2>
+    <section className="rounded-2xl border border-border bg-surface p-6">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">System status</h2>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         <StatusItem label="API" value={data?.service ?? "unknown"} ok />
-        <StatusItem
-          label="Database"
-          value={data?.database ?? "unknown"}
-          ok={databaseConnected}
-        />
+        <StatusItem label="Database" value={data?.database ?? "unknown"} ok={databaseConnected} />
         <StatusItem label="Checked at" value={formatTimestamp(data?.timestamp)} />
       </dl>
       {!databaseConnected ? (
-        <p className="mt-4 text-xs text-amber-700">
-          The API is running, but PostgreSQL is not connected. Start the database
-          and run Prisma migrations.
+        <p className="mt-4 text-xs text-warning">
+          The API is running, but PostgreSQL is not connected. Start the database and run Prisma
+          migrations.
         </p>
       ) : null}
     </section>
@@ -71,12 +58,12 @@ function StatusItem({
 }) {
   return (
     <div>
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="mt-1 font-medium text-slate-900">
+      <dt className="text-muted">{label}</dt>
+      <dd className="mt-1 font-medium text-foreground">
         {ok === undefined ? (
           value
         ) : (
-          <span className={ok ? "text-emerald-700" : "text-amber-700"}>{value}</span>
+          <span className={ok ? "text-success" : "text-warning"}>{value}</span>
         )}
       </dd>
     </div>

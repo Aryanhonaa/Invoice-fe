@@ -41,9 +41,9 @@ export interface Report {
   dateFrom: string;
   dateTo: string;
   role: UserRole;
-  scope: "SYSTEM" | "ORGANIZATION" | "MEMBER";
+  scope: "SYSTEM" | "ORGANIZATION" | "MEMBER" | "ADMIN";
   organizationId: string | null;
-  teamId: string | null;
+  memberId?: string | null;
   currency: string;
   overview: {
     revenue: string;

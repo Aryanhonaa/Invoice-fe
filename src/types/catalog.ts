@@ -2,6 +2,7 @@ import type { OrganizationSummary } from "@/types/admin";
 
 export type CatalogKind = "PRODUCT" | "SERVICE";
 export type CatalogStatus = "ACTIVE" | "INACTIVE";
+export type CustomerInvoiceLifecycle = "NEW" | "OLD";
 
 export interface Address {
   id: string;
@@ -22,6 +23,12 @@ export interface AddressFormValues {
   country: string;
 }
 
+export interface CustomerUnsentInvoice {
+  id: string;
+  invoiceNumber: string;
+  emailStatus: "NOT_SENT" | "FAILED";
+}
+
 export interface Customer {
   id: string;
   organizationId: string;
@@ -32,6 +39,8 @@ export interface Customer {
   taxNumber: string | null;
   notes: string | null;
   isActive: boolean;
+  invoiceLifecycleStatus: CustomerInvoiceLifecycle;
+  unsentInvoice: CustomerUnsentInvoice | null;
   billingAddress: Address | null;
   shippingAddress: Address | null;
   organization: OrganizationSummary | null;
@@ -45,6 +54,11 @@ export interface CustomerListResult {
   pageSize: number;
   total: number;
   totalPages: number;
+  counts: {
+    all: number;
+    new: number;
+    old: number;
+  };
 }
 
 export interface CustomerFormValues {

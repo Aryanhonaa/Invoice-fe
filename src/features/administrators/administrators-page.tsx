@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ActionGroup, EditAction, StatusAction } from "@/components/ui/action-buttons";
 import { Button } from "@/components/ui/button";
 import { DataTable, Table, Td, Th, THead } from "@/components/ui/data-table";
-import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Field, SelectInput, TextInput } from "@/components/ui/field";
@@ -16,18 +16,23 @@ import {
   AdministratorForm,
   valuesFromAdmin,
 } from "@/features/administrators/administrator-form";
+import { MemberPasswordCell } from "@/features/members/member-password-cell";
 import { ApiError } from "@/lib/api/types";
+import {
+  getCachedAdminPasswords,
+  setCachedAdminPassword,
+} from "@/lib/admin-password-cache";
+import { copyText } from "@/lib/copy-text";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import {
   createAdmin,
   listAdmins,
+  resetAdminPassword,
   updateAdmin,
   updateAdminStatus,
 } from "@/services/admins.service";
-import { listTeams } from "@/services/teams.service";
 import type { AdminFormValues, AdminListResult, AdminUser } from "@/types/admin";
-import type { Team } from "@/types/team";
 import type { AccountStatus } from "@/types/auth";
 
 export function AdministratorsPage({ embedded = false }: { embedded?: boolean }) {
@@ -36,7 +41,7 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   const { notify } = useToast();
 
   const [result, setResult] = useState<AdminListResult | null>(null);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -46,24 +51,25 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [formBusy, setFormBusy] = useState(false);
   const [statusTarget, setStatusTarget] = useState<AdminUser | null>(null);
-  const [statusBusy, setStatusBusy] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
+  const [copyBusyId, setCopyBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPasswords(getCachedAdminPasswords());
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [admins, teamList] = await Promise.all([
-        listAdmins({
-          search: search || undefined,
-          status,
-          page,
-          pageSize: 10,
-        }),
-        listTeams({ status: "ACTIVE", pageSize: 50 }),
-      ]);
+      const admins = await listAdmins({
+        search: search || undefined,
+        status,
+        page,
+        pageSize: 10,
+      });
       setResult(admins);
-      setTeams(teamList.items);
+      setPasswords((current) => ({ ...getCachedAdminPasswords(), ...current }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load administrators.");
     } finally {
@@ -95,12 +101,39 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
     };
   }, [load, user?.role]);
 
+  function rememberPassword(adminId: string, password: string) {
+    setCachedAdminPassword(adminId, password);
+    setPasswords((current) => ({ ...current, [adminId]: password }));
+  }
+
+  async function handleCopyPassword(admin: AdminUser) {
+    setCopyBusyId(admin.id);
+    try {
+      let password = passwords[admin.id] ?? getCachedAdminPasswords()[admin.id] ?? null;
+
+      if (!password) {
+        const result = await resetAdminPassword(admin.id);
+        password = result.temporaryPassword;
+        rememberPassword(admin.id, password);
+      }
+
+      await copyText(password);
+      notify("Password copied");
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Unable to copy password.", "error");
+    } finally {
+      setCopyBusyId(null);
+    }
+  }
+
   async function handleCreate(values: AdminFormValues) {
     setFormBusy(true);
     try {
       const created = await createAdmin(values);
+      if (created.temporaryPassword) {
+        rememberPassword(created.user.id, created.temporaryPassword);
+      }
       setFormMode(null);
-      setGeneratedPassword(created.temporaryPassword);
       notify("Administrator added.");
       await load();
     } catch (err) {
@@ -116,11 +149,18 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
     }
     setFormBusy(true);
     try {
-      await updateAdmin(editing.id, values);
+      const updated = await updateAdmin(editing.id, values);
       setFormMode(null);
       setEditing(null);
       notify("Administrator updated.");
-      await load();
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) => (item.id === updated.id ? updated : item)),
+            }
+          : current,
+      );
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to update administrator.", "error");
     } finally {
@@ -132,41 +172,47 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
     if (!statusTarget) {
       return;
     }
-    setStatusBusy(true);
+    setStatusBusyId(statusTarget.id);
     const nextStatus = statusTarget.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
-      await updateAdminStatus(statusTarget.id, nextStatus);
+      const updated = await updateAdminStatus(statusTarget.id, nextStatus);
       setStatusTarget(null);
       notify(nextStatus === "ACTIVE" ? "Administrator activated" : "Administrator deactivated");
-      await load();
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) => (item.id === updated.id ? updated : item)),
+            }
+          : current,
+      );
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Unable to update status.", "error");
     } finally {
-      setStatusBusy(false);
+      setStatusBusyId(null);
     }
   }
 
   if (authLoading || user?.role !== "SUPER_ADMIN") {
-    return <p className="text-sm text-slate-500">Checking access…</p>;
+    return <p className="text-sm text-muted">Checking access…</p>;
   }
 
   return (
     <div className="space-y-6">
-      {embedded ? null : (
+      {!embedded ? (
         <PageHeader
           title="Administrators"
           description="Team administrators who manage members, customers, and invoices."
           actions={<Button onClick={() => setFormMode("create")}>Add administrator</Button>}
         />
-      )}
-      {embedded ? (
+      ) : (
         <div className="flex justify-end">
           <Button onClick={() => setFormMode("create")}>Add administrator</Button>
         </div>
-      ) : null}
+      )}
 
       <form
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -203,24 +249,14 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
       </form>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading administrators…</p>
+        <p className="text-sm text-muted">Loading administrators…</p>
       ) : error ? (
         <ErrorState title="We couldn't load administrators." message={error} onRetry={() => void load()} />
       ) : !result || result.items.length === 0 ? (
         <EmptyState
           title="No administrators yet"
-          description={
-            teams.length === 0
-              ? "Create a team first, then add an administrator for that team."
-              : "Add an administrator to manage a team."
-          }
-          action={
-            teams.length === 0 ? (
-              <Button onClick={() => router.push("/teams")}>Create team</Button>
-            ) : (
-              <Button onClick={() => setFormMode("create")}>Add administrator</Button>
-            )
-          }
+          description="Add an administrator who can create and manage their own members."
+          action={<Button onClick={() => setFormMode("create")}>Add administrator</Button>}
         />
       ) : (
         <DataTable
@@ -231,13 +267,14 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
               <tr>
                 <Th>Name</Th>
                 <Th>Email</Th>
+                <Th>Password</Th>
                 <Th>Status</Th>
                 <Th className="text-right">Actions</Th>
               </tr>
             </THead>
             <tbody>
               {result.items.map((admin) => (
-                <tr key={admin.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={admin.id} className="border-t border-border hover:bg-muted-soft">
                   <Td>
                     <span className="font-medium">
                       {admin.firstName} {admin.lastName}
@@ -245,25 +282,30 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
                   </Td>
                   <Td muted>{admin.email}</Td>
                   <Td>
+                    <MemberPasswordCell
+                      password={passwords[admin.id] ?? null}
+                      copying={copyBusyId === admin.id}
+                      onCopy={() => handleCopyPassword(admin)}
+                    />
+                  </Td>
+                  <Td>
                     <StatusBadge status={admin.status} />
                   </Td>
                   <Td className="text-right">
-                    <DropdownMenu
-                      items={[
-                        {
-                          label: "Edit",
-                          onClick: () => {
-                            setEditing(admin);
-                            setFormMode("edit");
-                          },
-                        },
-                        {
-                          label: admin.status === "ACTIVE" ? "Deactivate" : "Activate",
-                          onClick: () => setStatusTarget(admin),
-                          danger: admin.status === "ACTIVE",
-                        },
-                      ]}
-                    />
+                    <ActionGroup>
+                      <EditAction
+                        onClick={() => {
+                          setEditing(admin);
+                          setFormMode("edit");
+                        }}
+                      />
+                      <StatusAction
+                        active={admin.status === "ACTIVE"}
+                        loading={statusBusyId === admin.id}
+                        disabled={Boolean(statusBusyId && statusBusyId !== admin.id)}
+                        onClick={() => setStatusTarget(admin)}
+                      />
+                    </ActionGroup>
                   </Td>
                 </tr>
               ))}
@@ -276,7 +318,6 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
         <AdministratorForm
           title="Add administrator"
           mode="create"
-          teams={teams}
           busy={formBusy}
           onClose={() => setFormMode(null)}
           onSubmit={handleCreate}
@@ -299,29 +340,18 @@ export function AdministratorsPage({ embedded = false }: { embedded?: boolean })
 
       {statusTarget ? (
         <ConfirmDialog
-          title={statusTarget.status === "ACTIVE" ? "Deactivate administrator" : "Activate administrator"}
+          title={statusTarget.status === "ACTIVE" ? "Deactivate Administrator?" : "Activate Administrator?"}
           message={
             statusTarget.status === "ACTIVE"
-              ? `${statusTarget.firstName} ${statusTarget.lastName} will no longer be able to sign in.`
+              ? "Are you sure you want to deactivate this administrator? They will no longer be able to access the system."
               : `${statusTarget.firstName} ${statusTarget.lastName} will be able to sign in again.`
           }
           confirmLabel={statusTarget.status === "ACTIVE" ? "Deactivate" : "Activate"}
           danger={statusTarget.status === "ACTIVE"}
-          busy={statusBusy}
+          busy={statusBusyId === statusTarget.id}
           onCancel={() => setStatusTarget(null)}
           onConfirm={() => void handleStatusChange()}
         />
-      ) : null}
-
-      {generatedPassword ? (
-        <Dialog title="Temporary password" onClose={() => setGeneratedPassword(null)}>
-          <p className="text-sm text-slate-600">
-            Share this password now. It is not stored in plain text and will not be shown again.
-          </p>
-          <p className="mt-4 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm break-all">
-            {generatedPassword}
-          </p>
-        </Dialog>
       ) : null}
     </div>
   );

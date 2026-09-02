@@ -53,7 +53,7 @@ export function Dialog({ title, children, onClose, footer, wide }: DialogProps) 
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/40"
+        className="absolute inset-0 bg-[#141517]/50"
         aria-label="Close dialog"
         onClick={onClose}
       />
@@ -62,10 +62,10 @@ export function Dialog({ title, children, onClose, footer, wide }: DialogProps) 
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
-        className={`relative z-10 w-full ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto rounded-[16px] bg-surface p-6 shadow-xl`}
+        className={`relative z-10 w-full ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-surface p-6`}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 id="dialog-title" className="text-lg font-semibold text-slate-900">
+          <h2 id="dialog-title" className="text-lg font-semibold text-foreground">
             {title}
           </h2>
           <Button variant="ghost" onClick={onClose} aria-label="Close dialog">
@@ -113,7 +113,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      <p className="text-sm leading-6 text-slate-600">{message}</p>
+      <p className="text-sm leading-6 text-muted">{message}</p>
     </Dialog>
   );
 }

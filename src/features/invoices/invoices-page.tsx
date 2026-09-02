@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ActionGroup, CopyLinkAction, EditAction, SendEmailAction } from "@/components/ui/action-buttons";
 import { Button } from "@/components/ui/button";
 import { ClickableRow, DataTable, Table, Td, Th, THead } from "@/components/ui/data-table";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Field, SelectInput, TextInput } from "@/components/ui/field";
@@ -17,12 +18,15 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { formatMoney } from "@/lib/invoice-calc";
 import { ApiError } from "@/lib/api/types";
 import { listCustomers } from "@/services/customers.service";
-import { listInvoices } from "@/services/invoices.service";
+import { getInvoiceShareLink, getInvoiceSummary, listInvoices, sendInvoice } from "@/services/invoices.service";
 import { useAuth } from "@/providers/auth-provider";
+import { useToast } from "@/providers/toast-provider";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { hasPermission } from "@/lib/permissions";
+import { copyText } from "@/lib/copy-text";
+import { StatCard } from "@/features/dashboard/stat-card";
 import type { Customer } from "@/types/catalog";
-import type { InvoiceListResult, InvoiceStatus } from "@/types/invoice";
+import type { Invoice, InvoiceListResult, InvoiceStatus, InvoiceSummary } from "@/types/invoice";
 
 const statuses: InvoiceStatus[] = [
   "DRAFT",
@@ -36,12 +40,17 @@ const statuses: InvoiceStatus[] = [
 
 export function InvoicesPage() {
   const { user } = useAuth();
-  const { organizationId, teamId, tenantListsReady, scopeLabel } = useWorkspace();
+  const { organizationId, tenantListsReady, scopeLabel } = useWorkspace();
   const canCreate = hasPermission(user, "INVOICES_CREATE");
+  const canUpdate = hasPermission(user, "INVOICES_UPDATE");
+  const canSend = hasPermission(user, "INVOICES_SEND");
+  const isMember = user?.role === "MEMBER";
   const requestIdRef = useRef(0);
   const router = useRouter();
+  const { notify } = useToast();
 
   const [result, setResult] = useState<InvoiceListResult | null>(null);
+  const [summary, setSummary] = useState<InvoiceSummary | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +63,10 @@ export function InvoicesPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [emailTarget, setEmailTarget] = useState<Invoice | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [copyBusyId, setCopyBusyId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search);
 
   const activeFilterCount = [status, customerId, dateFrom, dateTo].filter(Boolean).length;
@@ -62,6 +75,7 @@ export function InvoicesPage() {
   const load = useCallback(async () => {
     if (!tenantListsReady) {
       setResult(null);
+      setSummary(null);
       setLoading(false);
       setError(null);
       return;
@@ -70,13 +84,12 @@ export function InvoicesPage() {
     setLoading(true);
     setError(null);
     try {
-      const [invoices, customerResult] = await Promise.all([
+      const [invoices, customerResult, summaryResult] = await Promise.all([
         listInvoices({
           search: debouncedSearch || undefined,
           status,
           customerId: customerId || undefined,
           organizationId: organizationId || undefined,
-          teamId: teamId || undefined,
           dateFrom: dateFrom || undefined,
           dateTo: dateTo || undefined,
           sort,
@@ -88,12 +101,14 @@ export function InvoicesPage() {
           pageSize: 50,
           organizationId: organizationId || undefined,
         }),
+        isMember ? getInvoiceSummary() : Promise.resolve(null),
       ]);
       if (requestId !== requestIdRef.current) {
         return;
       }
       setResult(invoices);
       setCustomers(customerResult.items);
+      setSummary(summaryResult);
     } catch (err) {
       if (requestId !== requestIdRef.current) {
         return;
@@ -109,12 +124,12 @@ export function InvoicesPage() {
     dateFrom,
     dateTo,
     debouncedSearch,
+    isMember,
     organizationId,
     page,
     sort,
     sortDir,
     status,
-    teamId,
     tenantListsReady,
   ]);
 
@@ -142,6 +157,62 @@ export function InvoicesPage() {
     setPage(1);
   }
 
+  async function handleCopyLink(invoice: Invoice) {
+    setCopyBusyId(invoice.id);
+    try {
+      const url = await getInvoiceShareLink(invoice.id);
+      await copyText(url);
+      notify("Invoice link copied");
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Unable to copy invoice link.", "error");
+    } finally {
+      setCopyBusyId(null);
+    }
+  }
+
+  async function handleSendEmail() {
+    if (!emailTarget) {
+      return;
+    }
+    setEmailBusy(true);
+    setSendingId(emailTarget.id);
+    try {
+      const updated = await sendInvoice(emailTarget.id);
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) => (item.id === updated.id ? updated : item)),
+            }
+          : current,
+      );
+      if (isMember) {
+        try {
+          setSummary(await getInvoiceSummary());
+        } catch {
+          // List already updated; summary refresh is best-effort.
+        }
+      }
+      setEmailTarget(null);
+      notify("Invoice sent successfully");
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Email failed", "error");
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) =>
+                item.id === emailTarget.id ? { ...item, emailStatus: "FAILED" } : item,
+              ),
+            }
+          : current,
+      );
+    } finally {
+      setEmailBusy(false);
+      setSendingId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -159,6 +230,29 @@ export function InvoicesPage() {
           ) : undefined
         }
       />
+
+      {isMember ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <StatCard label="All Invoices" value={String(summary?.all ?? 0)} />
+          <StatCard
+            label="Paid Invoices"
+            value={String(summary?.paid ?? 0)}
+            tone="success"
+          />
+          <StatCard
+            label="Outstanding"
+            value={String(summary?.outstanding ?? 0)}
+            tone="warning"
+            hint="Sent, viewed, overdue, or partially paid"
+          />
+          <StatCard
+            label="Overview"
+            value={String(summary?.overview ?? 0)}
+            hint="Drafts and overdue needing attention"
+          />
+          <StatCard label="Void" value={String(summary?.void ?? 0)} />
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
@@ -185,7 +279,7 @@ export function InvoicesPage() {
       </div>
 
       {filtersOpen ? (
-        <div className="grid gap-3 rounded-[12px] border border-border bg-surface p-4 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 rounded-2xl border border-border bg-surface p-4 md:grid-cols-3 xl:grid-cols-6">
           <Field label="Status" htmlFor="invoice-status">
             <SelectInput
               id="invoice-status"
@@ -299,6 +393,7 @@ export function InvoicesPage() {
                 <Th>Due date</Th>
                 <Th>Amount</Th>
                 <Th>Status</Th>
+                <Th>Email</Th>
                 <Th className="text-right">Actions</Th>
               </tr>
             </THead>
@@ -315,19 +410,33 @@ export function InvoicesPage() {
                   <Td>
                     <StatusBadge status={invoice.status} />
                   </Td>
+                  <Td>
+                    <StatusBadge
+                      status={sendingId === invoice.id ? "SENDING" : invoice.emailStatus}
+                    />
+                  </Td>
                   <Td className="text-right">
                     <div
                       onClick={(event) => event.stopPropagation()}
                       onKeyDown={(event) => event.stopPropagation()}
                     >
-                      <DropdownMenu
-                        items={[
-                          { label: "View", onClick: () => router.push(`/invoices/${invoice.id}`) },
-                          ...(invoice.status === "DRAFT"
-                            ? [{ label: "Edit", onClick: () => router.push(`/invoices/${invoice.id}/edit`) }]
-                            : []),
-                        ]}
-                      />
+                      <ActionGroup>
+                        <EditAction mode="view" onClick={() => router.push(`/invoices/${invoice.id}`)} />
+                        <CopyLinkAction
+                          loading={copyBusyId === invoice.id}
+                          onClick={() => void handleCopyLink(invoice)}
+                        />
+                        {canSend && invoice.status !== "CANCELLED" ? (
+                          <SendEmailAction
+                            label={invoice.emailStatus === "FAILED" ? "Retry" : "Send Email"}
+                            disabled={!invoice.customer.email}
+                            onClick={() => setEmailTarget(invoice)}
+                          />
+                        ) : null}
+                        {canUpdate && invoice.status === "DRAFT" ? (
+                          <EditAction onClick={() => router.push(`/invoices/${invoice.id}/edit`)} />
+                        ) : null}
+                      </ActionGroup>
                     </div>
                   </Td>
                 </ClickableRow>
@@ -336,6 +445,44 @@ export function InvoicesPage() {
           </Table>
         </DataTable>
       )}
+
+      {emailTarget ? (
+        <Dialog
+          title="Send Invoice"
+          onClose={() => {
+            if (!emailBusy) {
+              setEmailTarget(null);
+            }
+          }}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setEmailTarget(null)} disabled={emailBusy}>
+                Cancel
+              </Button>
+              <Button onClick={() => void handleSendEmail()} disabled={emailBusy || !emailTarget.customer.email}>
+                {emailBusy ? "Sending…" : "Send Invoice"}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-3 text-sm">
+            <p className="text-muted">
+              Send {emailTarget.invoiceNumber} to this customer by email. You can resend if it was already sent.
+            </p>
+            <div className="rounded-xl bg-muted-soft px-3 py-2">
+              <p className="text-xs font-medium text-muted">Recipient</p>
+              <p className="mt-1 font-medium text-foreground">{emailTarget.customer.email ?? "No email on file"}</p>
+              <p className="text-muted">{emailTarget.customer.name}</p>
+            </div>
+            {emailTarget.emailStatus === "FAILED" ? (
+              <p className="text-sm text-primary">Email failed. You can retry sending, or copy the invoice link instead.</p>
+            ) : null}
+            {!emailTarget.customer.email ? (
+              <p className="text-sm text-primary">This customer has no email. Copy the invoice link to share it another way.</p>
+            ) : null}
+          </div>
+        </Dialog>
+      ) : null}
     </div>
   );
 }

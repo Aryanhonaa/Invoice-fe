@@ -2,7 +2,7 @@ import { apiRequest } from "@/lib/api/client";
 import { getApiBaseUrl } from "@/lib/env";
 import { ApiError } from "@/lib/api/types";
 import { invoiceListResultSchema, invoiceSchema } from "@/schemas/invoice";
-import type { Invoice, InvoiceFormValues, InvoiceListResult, InvoiceStatus } from "@/types/invoice";
+import type { Invoice, InvoiceFormValues, InvoiceListResult, InvoiceStatus, InvoiceSummary, PublicInvoice } from "@/types/invoice";
 
 function invoicePayload(values: InvoiceFormValues, options?: { includeOrganization?: boolean }) {
   return {
@@ -20,8 +20,7 @@ function invoicePayload(values: InvoiceFormValues, options?: { includeOrganizati
       description: item.description,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
-      discount: item.discount || undefined,
-      taxRate: item.taxRate || undefined,
+      discount: "0",
     })),
   };
 }
@@ -31,7 +30,6 @@ export async function listInvoices(query: {
   status?: InvoiceStatus | "";
   customerId?: string;
   organizationId?: string;
-  teamId?: string;
   dateFrom?: string;
   dateTo?: string;
   sort?: string;
@@ -44,7 +42,6 @@ export async function listInvoices(query: {
   if (query.status) params.set("status", query.status);
   if (query.customerId) params.set("customerId", query.customerId);
   if (query.organizationId) params.set("organizationId", query.organizationId);
-  if (query.teamId) params.set("teamId", query.teamId);
   if (query.dateFrom) params.set("dateFrom", query.dateFrom);
   if (query.dateTo) params.set("dateTo", query.dateTo);
   if (query.sort) params.set("sort", query.sort);
@@ -54,6 +51,11 @@ export async function listInvoices(query: {
   return invoiceListResultSchema.parse(
     await apiRequest<InvoiceListResult>(`/api/invoices?${params}`),
   );
+}
+
+export async function getInvoiceSummary(): Promise<InvoiceSummary> {
+  const data = await apiRequest<{ summary: InvoiceSummary }>("/api/invoices/summary");
+  return data.summary;
 }
 
 export async function getInvoice(id: string): Promise<Invoice> {
@@ -86,6 +88,18 @@ export async function sendInvoice(id: string): Promise<Invoice> {
     method: "POST",
   });
   return invoiceSchema.parse(data.invoice);
+}
+
+export async function getInvoiceShareLink(id: string): Promise<string> {
+  const data = await apiRequest<{ url: string }>(`/api/invoices/${id}/share-link`, {
+    method: "POST",
+  });
+  return data.url;
+}
+
+export async function getPublicInvoice(token: string): Promise<PublicInvoice> {
+  const data = await apiRequest<{ invoice: PublicInvoice }>(`/api/public/invoices/${token}`);
+  return data.invoice;
 }
 
 export async function duplicateInvoice(id: string): Promise<Invoice> {

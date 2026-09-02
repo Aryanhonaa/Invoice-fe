@@ -8,27 +8,33 @@ export const CHART_COLORS = {
   muted: "var(--chart-muted)",
   grid: "var(--chart-grid)",
   axis: "var(--chart-axis)",
-  paid: "#334155",
-  pending: "#64748b",
-  partial: "#94a3b8",
-  overdue: "#b45309",
-  cancelled: "#cbd5e1",
+  paid: "#141517",
+  pending: "#6b6d70",
+  partial: "#9a9b9d",
+  overdue: "#d41920",
+  cancelled: "#c8c9cb",
 };
 
 export const INVOICE_STATUS_COLORS: Record<string, string> = {
+  DRAFT: CHART_COLORS.muted,
+  SENT: CHART_COLORS.pending,
+  VIEWED: CHART_COLORS.partial,
   PAID: CHART_COLORS.paid,
-  PENDING: CHART_COLORS.pending,
-  PARTIALLY_PAID: CHART_COLORS.partial,
   OVERDUE: CHART_COLORS.overdue,
   CANCELLED: CHART_COLORS.cancelled,
+  PENDING: CHART_COLORS.pending,
+  PARTIALLY_PAID: CHART_COLORS.partial,
 };
 
 export const INVOICE_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  SENT: "Sent",
+  VIEWED: "Viewed",
   PAID: "Paid",
-  PENDING: "Pending",
-  PARTIALLY_PAID: "Partially paid",
   OVERDUE: "Overdue",
   CANCELLED: "Cancelled",
+  PENDING: "Pending",
+  PARTIALLY_PAID: "Partially paid",
 };
 
 export const tooltipStyle = {
