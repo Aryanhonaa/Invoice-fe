@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/field";
+import { Field, PhoneInput, SelectInput, TextArea, TextInput } from "@/components/ui/field";
 import { MoreOptions } from "@/components/ui/form-section";
 import { customerFormSchema } from "@/schemas/catalog";
 import { usePersistedFormState } from "@/hooks/use-persisted-form-state";
@@ -130,7 +130,7 @@ export function CustomerForm({
             />
           </Field>
           <Field label="Phone" htmlFor="customer-phone">
-            <TextInput
+            <PhoneInput
               id="customer-phone"
               value={values.phone}
               onChange={(event) => update("phone", event.target.value)}
